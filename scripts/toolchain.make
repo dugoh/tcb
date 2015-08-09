@@ -7,7 +7,7 @@ fetchtoolchain:
 	#cd src; git clone git://github.com/openrisc/linux.git
 	# This one will do for now
 	cd src; git clone git://github.com/skristiansson/linux.git
-	cd src; mv or1k-linux linux
+	#cd src; mv or1k-linux linux
 	cd src/linux; git checkout smp
 	cd src; git clone git://git.musl-libc.org/musl
 	cd src; git clone git://github.com/openrisc/or1ksim.git
