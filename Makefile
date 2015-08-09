@@ -1,9 +1,9 @@
 # --------------------------------------
-TOOLCHAIN_DIR = /opt/cross/or1k-linux-musl
+TOOLCHAIN_DIR = ${HOME}/opt/cross/or1k-linux-musl
 TOOLCHAIN_TARGET = or1k-linux-musl
 SYSROOT := $(CURDIR)/sysroot
 # --------------------------------------
-#TOOLCHAIN_DIR = /opt/cross/or1k-linux-gnu
+#TOOLCHAIN_DIR = ${HOME}/opt/cross/or1k-linux-gnu
 #TOOLCHAIN_TARGET = or1k-linux-gnu
 #SYSROOT := $(CURDIR)/sysroot-glibc
 # --------------------------------------
