@@ -1,0 +1,15 @@
+--- node-v0.10.2.org/deps/uv/src/unix/linux-core.c	2013-04-01 22:15:33.402000003 +0000
++++ node-v0.10.2/deps/uv/src/unix/linux-core.c	2013-04-01 22:58:00.592000002 +0000
+@@ -36,11 +36,8 @@
+ #include <fcntl.h>
+ #include <time.h>
+ 
++#if defined(__GLIBC__)
+ #define HAVE_IFADDRS_H 1
+-#ifdef __UCLIBC__
+-# if __UCLIBC_MAJOR__ < 0 || __UCLIBC_MINOR__ < 9 || __UCLIBC_SUBLEVEL__ < 32
+-#  undef HAVE_IFADDRS_H
+-# endif
+ #endif
+ #ifdef HAVE_IFADDRS_H
+ # include <ifaddrs.h>

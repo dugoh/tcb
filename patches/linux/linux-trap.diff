@@ -1,0 +1,13 @@
+diff --git a/arch/openrisc/kernel/traps.c b/arch/openrisc/kernel/traps.c
+index 3d3f606..be022f9 100644
+--- a/arch/openrisc/kernel/traps.c
++++ b/arch/openrisc/kernel/traps.c
+@@ -293,8 +293,6 @@ asmlinkage void do_trap(struct pt_regs *regs, unsigned long address)
+ 	info.si_code = TRAP_TRACE;
+ 	info.si_addr = (void *)address;
+ 	force_sig_info(SIGTRAP, &info, current);
+-
+-	regs->pc += 4;
+ }
+
+ asmlinkage void do_unaligned_access(struct pt_regs *regs, unsigned long address)

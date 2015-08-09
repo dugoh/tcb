@@ -1,0 +1,22 @@
+--- Mesa-9.1.6.org/src/glsl/strtod.c	2013-08-04 18:12:47.178000003 +0000
++++ Mesa-9.1.6/src/glsl/strtod.c	2013-08-04 18:14:09.102000003 +0000
+@@ -44,8 +44,7 @@
+ double
+ glsl_strtod(const char *s, char **end)
+ {
+-#if defined(_GNU_SOURCE) && !defined(__CYGWIN__) && !defined(__FreeBSD__) && \
+-   !defined(__HAIKU__) && !defined(__UCLIBC__)
++#if defined(__GLIBC__)
+    static locale_t loc = NULL;
+    if (!loc) {
+       loc = newlocale(LC_CTYPE_MASK, "C", NULL);
+@@ -64,8 +63,7 @@
+ float
+ glsl_strtof(const char *s, char **end)
+ {
+-#if defined(_GNU_SOURCE) && !defined(__CYGWIN__) && !defined(__FreeBSD__) && \
+-   !defined(__HAIKU__) && !defined(__UCLIBC__)
++#if defined(__GLIBC__)
+    static locale_t loc = NULL;
+    if (!loc) {
+       loc = newlocale(LC_CTYPE_MASK, "C", NULL);

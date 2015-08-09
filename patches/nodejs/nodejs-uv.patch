@@ -1,0 +1,11 @@
+--- node-v0.10.2.org/deps/uv/src/fs-poll.c	2013-04-01 22:15:33.402000003 +0000
++++ node-v0.10.2/deps/uv/src/fs-poll.c	2013-04-01 22:47:40.953000003 +0000
+@@ -198,7 +198,7 @@
+ 
+   /* Jump through a few hoops to get sub-second granularity on Linux. */
+ # if defined(__linux__)
+-#  if defined(__USE_MISC) /* _BSD_SOURCE || _SVID_SOURCE */
++#  if 1
+   if (a->st_ctim.tv_nsec != b->st_ctim.tv_nsec) return 0;
+   if (a->st_mtim.tv_nsec != b->st_mtim.tv_nsec) return 0;
+ #  else

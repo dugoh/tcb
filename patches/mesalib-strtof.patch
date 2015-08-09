@@ -1,0 +1,12 @@
+--- Mesa-9.1.6.org/src/mesa/main/imports.c	2013-08-04 18:12:47.048000003 +0000
++++ Mesa-9.1.6/src/mesa/main/imports.c	2013-08-04 18:17:26.375000003 +0000
+@@ -565,8 +565,7 @@
+ float
+ _mesa_strtof( const char *s, char **end )
+ {
+-#if defined(_GNU_SOURCE) && !defined(__CYGWIN__) && !defined(__FreeBSD__) && \
+-   !defined(ANDROID) && !defined(__HAIKU__) && !defined(__UCLIBC__)
++#if defined(__GLIBC__)
+    static locale_t loc = NULL;
+    if (!loc) {
+       loc = newlocale(LC_CTYPE_MASK, "C", NULL);

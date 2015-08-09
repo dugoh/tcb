@@ -1,0 +1,21 @@
+--- libtool	2014-11-23 19:04:29.363284556 +0000
++++ libtool-patched	2014-11-23 19:07:16.167284563 +0000
+@@ -3405,12 +3405,13 @@
+ 	  test "$inst_prefix_dir" = "$destdir" && \
+ 	    func_fatal_error "error: cannot install \`$file' to a directory not ending in $libdir"
+ 
+-	  if test -n "$inst_prefix_dir"; then
++	  #if test -n "$inst_prefix_dir"; then
+ 	    # Stick the inst_prefix_dir data into the link command.
+-	    relink_command=`$ECHO "$relink_command" | $SED "s%@inst_prefix_dir@%-inst-prefix-dir $inst_prefix_dir%"`
+-	  else
+-	    relink_command=`$ECHO "$relink_command" | $SED "s%@inst_prefix_dir@%%"`
+-	  fi
++	    #relink_command=`$ECHO "$relink_command" | $SED "s%@inst_prefix_dir@%-inst-prefix-dir $inst_prefix_dir%"`
++	  #else
++	    #relink_command=`$ECHO "$relink_command" | $SED "s%@inst_prefix_dir@%%"`
++	  #fi
++	  relink_command=``
+ 
+ 	  func_warning "relinking \`$file'"
+ 	  func_show_eval "$relink_command" \

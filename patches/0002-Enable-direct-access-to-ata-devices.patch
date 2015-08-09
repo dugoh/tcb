@@ -1,0 +1,311 @@
+[PATCH 2/3] Enable direct access to ata devices
+
+Signed-off-by: Sebastian Macke <sebastian@macke.de> 
+---
+ peripheral/atadevice-cmdi.c |  14 ++---
+ peripheral/atadevice.c      |   1 +
+ peripheral/atahost.c        | 142 +++++++++++++++++++++++++++++++++++---------
+ peripheral/atahost.h        |   3 +
+ 4 files changed, 125 insertions(+), 35 deletions(-)
+
+diff --git a/peripheral/atadevice-cmdi.c b/peripheral/atadevice-cmdi.c
+index 27fcfd0..ca84bef 100644
+--- a/peripheral/atadevice-cmdi.c
++++ b/peripheral/atadevice-cmdi.c
+@@ -138,7 +138,7 @@ ata_read_sect (struct ata_device *dev)
+   dev->internals.lba += BYTES_PER_SECTOR;
+   dev->internals.nr_sect--;
+ 
+-  SCHED_ADD (ata_cmd_complete, dev, 400000);
++  SCHED_ADD (ata_cmd_complete, dev, 4000);
+ }
+ 
+ /* Writes a sector to the device */
+@@ -168,7 +168,7 @@ ata_write_sect (struct ata_device *dev)
+   if (!--dev->internals.nr_sect)
+     dev->regs.status = ATA_SR_DRDY | ATA_SR_DSC | ATA_SR_BSY;
+ 
+-  SCHED_ADD (ata_cmd_complete, dev, 40000);
++  SCHED_ADD (ata_cmd_complete, dev, 4000);
+ }
+ 
+ 
+@@ -1081,12 +1081,12 @@ ata_device_execute_cmd (struct ata_device *device)
+     {
+     case DEVICE_RESET:
+       ata_device_reset_cmd (device);
+-      SCHED_ADD (ata_cmd_complete, device, 4000000);
++      SCHED_ADD (ata_cmd_complete, device, 400000);
+       return 0;
+ 
+     case EXECUTE_DEVICE_DIAGNOSTICS:
+       ata_execute_device_diagnostics_cmd (device);
+-      SCHED_ADD (ata_cmd_complete, device, 4000000);
++      SCHED_ADD (ata_cmd_complete, device, 400000);
+       return 0;
+ 
+     case IDENTIFY_DEVICE:
+@@ -1108,17 +1108,17 @@ ata_device_execute_cmd (struct ata_device *device)
+ 
+     case READ_NATIVE_MAX_ADDRESS:
+       ata_read_native_max_addr (device);
+-      SCHED_ADD (ata_cmd_complete, device, 40000);
++      SCHED_ADD (ata_cmd_complete, device, 4000);
+       return 0;
+ 
+     case WRITE_SECTORS:
+       ata_write_sectors (device);
+-      SCHED_ADD (ata_cmd_complete, device, 40000);
++      SCHED_ADD (ata_cmd_complete, device, 4000);
+       return 0;
+ 
+     case SET_FEATURES:
+       ata_set_features (device);
+-      SCHED_ADD (ata_cmd_complete, device, 4000);
++      SCHED_ADD (ata_cmd_complete, device, 400);
+       return 0;
+ 
+     default:
+diff --git a/peripheral/atadevice.c b/peripheral/atadevice.c
+index 066c5b1..0a719fd 100644
+--- a/peripheral/atadevice.c
++++ b/peripheral/atadevice.c
+@@ -429,6 +429,7 @@ ata_devices_read (struct ata_devices * devices, char adr)
+ 	      device->internals.dev)
+ 	    {
+ 	      device->sigs.intrq = 0;
++              ata_clear_int (device->internals.host);
+ 	      return device->regs.status;
+ 	    }
+ 
+diff --git a/peripheral/atahost.c b/peripheral/atahost.c
+index 5d9ae98..3345c7d 100644
+--- a/peripheral/atahost.c
++++ b/peripheral/atahost.c
+@@ -76,6 +76,13 @@ ata_reset (void *dat)
+ 
+   /* the reset bit in the control register 'ctrl' is set, reset connect ata-devices */
+   ata_devices_hw_reset (&ata->devices, 1);
++
++  if (ata->init)
++    {
++      ata->regs.ctrl |= ATA_IDE_EN;
++      ata_devices_hw_reset (&ata->devices, 0);
++    }
++
+ }
+ 
+ /* ========================================================================= */
+@@ -93,8 +100,70 @@ ata_int (void *dat)
+     }
+ }
+ 
++/* Clear interrupt */
++void
++ata_clear_int (void *dat)
++{
++  struct ata_host *ata = dat;
++
++  if (ata->regs.stat & ATA_IDEIS)
++    {
++      clear_interrupt (ata->irq);
++      ata->regs.stat &= ~ATA_IDEIS;
++    }
++}
++
++
+ /* ========================================================================= */
+ 
++ /* correct read/write delay timings */
++
++static void
++ata_correct_readwrite_delay(oraddr_t addr, void *dat)
++{
++  struct ata_host *ata = dat;
++// make sure simulator uses correct read/write delay timings
++    if (((addr & 0x7f) == ATA_DR) && (ata->dev_id > 1))
++      {
++        if (ata->dev_sel)
++          adjust_rw_delay (ata->mem, ata_pio_delay (ata->regs.pftr1),
++                           ata_pio_delay (ata->regs.pftr1));
++        else
++          adjust_rw_delay (ata->mem, ata_pio_delay (ata->regs.pftr0),
++                           ata_pio_delay (ata->regs.pftr0));
++      }
++    else
++      adjust_rw_delay (ata->mem, ata_pio_delay (ata->regs.pctr),
++                       ata_pio_delay (ata->regs.pctr));
++}
++/* ========================================================================= */
++
++
++
++static uint8_t
++ata_read8 (oraddr_t addr, void *dat)
++{
++  struct ata_host *ata = dat;
++  if (ata->regs.ctrl & ATA_IDE_EN)
++    {
++      ata_correct_readwrite_delay (addr, dat);
++      return ata_devices_read (&ata->devices, addr & 0x7f);
++    }
++  return 0;
++}
++
++static uint16_t
++ata_read16 (oraddr_t addr, void *dat)
++{
++  struct ata_host *ata = dat;
++  if (ata->regs.ctrl & ATA_IDE_EN)
++    {
++      ata_correct_readwrite_delay (addr, dat);
++      return ata_devices_read (&ata->devices, addr & 0x7f);
++    }
++  return 0;
++}
++
+ 
+ /*
+   Read a register
+@@ -144,20 +213,7 @@ ata_read32 (oraddr_t addr, void *dat)
+   /* check if the controller is enabled */
+   if (ata->regs.ctrl & ATA_IDE_EN)
+     {
+-      // make sure simulator uses correct read/write delay timings
+-      if (((addr & 0x7f) == ATA_DR) && ata->dev_id > 1)
+-	{
+-	  if (ata->dev_sel)
+-	    adjust_rw_delay (ata->mem, ata_pio_delay (ata->regs.pftr1),
+-			     ata_pio_delay (ata->regs.pftr1));
+-	  else
+-	    adjust_rw_delay (ata->mem, ata_pio_delay (ata->regs.pftr0),
+-			     ata_pio_delay (ata->regs.pftr0));
+-	}
+-      else
+-	adjust_rw_delay (ata->mem, ata_pio_delay (ata->regs.pctr),
+-			 ata_pio_delay (ata->regs.pctr));
+-
++      ata_correct_readwrite_delay (addr, dat);
+       return ata_devices_read (&ata->devices, addr & 0x7f);
+     }
+   return 0;
+@@ -169,6 +225,30 @@ ata_read32 (oraddr_t addr, void *dat)
+ /*
+   Write a register
+ */
++
++static void
++ata_write8 (oraddr_t addr, uint8_t value, void *dat)
++{
++  struct ata_host *ata = dat;
++  if (ata->regs.ctrl & ATA_IDE_EN)
++    {
++      ata_correct_readwrite_delay (addr, dat);
++      ata_devices_write (&ata->devices, addr & 0x7f, value);
++    }
++}
++
++static void
++ata_write16 (oraddr_t addr, uint16_t value, void *dat)
++{
++  struct ata_host *ata = dat;
++  if (ata->regs.ctrl & ATA_IDE_EN)
++    {
++      ata_correct_readwrite_delay (addr, dat);
++      ata_devices_write (&ata->devices, addr & 0x7f, value);
++    }
++}
++
++
+ static void
+ ata_write32 (oraddr_t addr, uint32_t value, void *dat)
+ {
+@@ -241,20 +321,7 @@ ata_write32 (oraddr_t addr, uint32_t value, void *dat)
+   /* check if the controller is enabled */
+   if (ata->regs.ctrl & ATA_IDE_EN)
+     {
+-      // make sure simulator uses correct read/write delay timings
+-      if (((addr & 0x7f) == ATA_DR) && (ata->dev_id > 1))
+-	{
+-	  if (ata->dev_sel)
+-	    adjust_rw_delay (ata->mem, ata_pio_delay (ata->regs.pftr1),
+-			     ata_pio_delay (ata->regs.pftr1));
+-	  else
+-	    adjust_rw_delay (ata->mem, ata_pio_delay (ata->regs.pftr0),
+-			     ata_pio_delay (ata->regs.pftr0));
+-	}
+-      else
+-	adjust_rw_delay (ata->mem, ata_pio_delay (ata->regs.pctr),
+-			 ata_pio_delay (ata->regs.pctr));
+-
++      ata_correct_readwrite_delay (addr, dat);
+       if ((addr & 0x7f) == ATA_DHR)
+ 	ata->dev_sel = value & ATA_DHR_DEV;
+ 
+@@ -519,6 +586,14 @@ ata_enabled (union param_val val, void *dat)
+ }
+ 
+ static void
++ata_init (union param_val val, void *dat)
++{
++  struct ata_host *ata = dat;
++  ata->init = val.int_val;
++}
++
++
++static void
+ ata_heads (union param_val val, void *dat)
+ {
+   struct ata_host *ata = dat;
+@@ -631,6 +706,7 @@ ata_sec_start (void)
+   memset (new, 0, sizeof (struct ata_host));
+ 
+   new->enabled        = 1;
++  new->init           = 0; 
+   new->baseaddr       = 0;
+   new->irq            = 0;
+   new->dev_id         = 1;
+@@ -691,8 +767,17 @@ ata_sec_end (void *dat)
+ 
+   ops.readfunc32 = ata_read32;
+   ops.read_dat32 = dat;
++  ops.readfunc16 = ata_read16;
++  ops.read_dat16 = dat;
++  ops.readfunc8 = ata_read8;
++  ops.read_dat8 = dat;
++
+   ops.writefunc32 = ata_write32;
+   ops.write_dat32 = dat;
++  ops.writefunc16 = ata_write16;
++  ops.write_dat16 = dat;
++  ops.writefunc8 = ata_write8;
++  ops.write_dat8 = dat;
+ 
+   /* Delays will be readjusted later */
+   ops.delayr = 2;
+@@ -715,6 +800,7 @@ reg_ata_sec ()
+   reg_config_param (sec, "irq",            PARAMT_INT, ata_irq);
+   reg_config_param (sec, "dev_id",         PARAMT_INT, ata_dev_id);
+   reg_config_param (sec, "rev",            PARAMT_INT, ata_rev);
++  reg_config_param (sec, "init",           PARAMT_INT, ata_init);
+ 
+   reg_config_param (sec, "pio_mode0_t1",   PARAMT_INT, ata_pio_mode0_t1);
+   reg_config_param (sec, "pio_mode0_t2",   PARAMT_INT, ata_pio_mode0_t2);
+diff --git a/peripheral/atahost.h b/peripheral/atahost.h
+index 649cd52..a872a53 100755
+--- a/peripheral/atahost.h
++++ b/peripheral/atahost.h
+@@ -110,6 +110,9 @@ struct ata_host
+   /* Is peripheral enabled? */
+   int enabled;
+ 
++  /* Initialize device after hard reset? */
++  int init;
++
+   /* Base address in memory                                     */
+   oraddr_t baseaddr;
+ 
+-- 
+1.8.3.2
+
+

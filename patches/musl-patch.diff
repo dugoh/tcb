@@ -1,0 +1,42 @@
+diff --git a/src/ldso/dynlink.c b/src/ldso/dynlink.c
+index 12f14f7..0d82e36 100644
+--- a/src/ldso/dynlink.c
++++ b/src/ldso/dynlink.c
+@@ -325,20 +325,33 @@ static void do_relocs(struct dso *dso, size_t *rel, size_t rel_size, size_t stri
+ 		sym_val = def.sym ? (size_t)def.dso->base+def.sym->st_value : 0;
+ 		tls_val = def.sym ? def.sym->st_value : 0;
+ 
++		/* Handle mis-aligned offsets */
++		struct unaligned
++		{
++			Elf32_Addr x;
++		} __attribute__ ((packed, may_alias));
++
++
+ 		switch(type) {
+ 		case REL_OFFSET:
+ 			addend -= (size_t)reloc_addr;
+ 		case REL_SYMBOLIC:
+ 		case REL_GOT:
+ 		case REL_PLT:
+-			*reloc_addr = sym_val + addend;
++			((struct unaligned *) reloc_addr)->x = sym_val + addend;
++			//*reloc_addr = sym_val + addend;
+ 			break;
+ 		case REL_RELATIVE:
+-			*reloc_addr = (size_t)base + addend;
++			((struct unaligned *) reloc_addr)->x = (size_t)base + addend;
++
++			//*reloc_addr = (size_t)base + addend;
+ 			break;
+ 		case REL_SYM_OR_REL:
+-			if (sym) *reloc_addr = sym_val + addend;
+-			else *reloc_addr = (size_t)base + addend;
++			if (sym) ((struct unaligned *) reloc_addr)->x = sym_val + addend;
++			else ((struct unaligned *) reloc_addr)->x = (size_t)base + addend;
++
++//			if (sym) *reloc_addr = sym_val + addend;
++//			else *reloc_addr = (size_t)base + addend;
+ 			break;
+ 		case REL_COPY:
+ 			memcpy(reloc_addr, (void *)sym_val, sym->st_size);

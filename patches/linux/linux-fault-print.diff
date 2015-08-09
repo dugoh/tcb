@@ -1,0 +1,95 @@
+diff --git a/arch/openrisc/mm/fault.c b/arch/openrisc/mm/fault.c
+index 2fb5cba..05f59f9 100644
+--- a/arch/openrisc/mm/fault.c
++++ b/arch/openrisc/mm/fault.c
+@@ -23,9 +23,15 @@
+ #include <asm/uaccess.h>
+ #include <asm/siginfo.h>
+ #include <asm/signal.h>
++#include <asm/spr_defs.h>
+ 
+-#define NUM_TLB_ENTRIES 64
+-#define TLB_OFFSET(add) (((add) >> PAGE_SHIFT) & (NUM_TLB_ENTRIES-1))
++#define NUM_DTLB_SETS (1 << ((mfspr(SPR_IMMUCFGR) & SPR_IMMUCFGR_NTS) >> \
++			    SPR_DMMUCFGR_NTS_OFF))
++#define NUM_ITLB_SETS (1 << ((mfspr(SPR_IMMUCFGR) & SPR_IMMUCFGR_NTS) >> \
++			    SPR_IMMUCFGR_NTS_OFF))
++
++#define NUM_DTLB_WAYS (1 + (mfspr(SPR_DMMUCFGR) & SPR_DMMUCFGR_NTW))
++#define NUM_ITLB_WAYS (1 + (mfspr(SPR_IMMUCFGR) & SPR_IMMUCFGR_NTW))
+ 
+ unsigned long pte_misses;	/* updated by do_page_fault() */
+ unsigned long pte_errors;	/* updated by do_page_fault() */
+@@ -38,6 +44,31 @@ volatile pgd_t *current_pgd[NR_CPUS];
+ extern void die(char *, struct pt_regs *, long);
+ 
+ /*
++ * Peeks into the tlbs associated with 'address'.
++ * Return 1 on miss and 0 on hit.
++ */
++static int tlb_miss(ulong address, ulong vector)
++{
++	int i;
++	ulong mr;
++	ulong vpn = address >> PAGE_SHIFT;
++	ulong num_tlb_ways = (vector == 0x300) ? NUM_DTLB_WAYS : NUM_ITLB_WAYS;
++	ulong num_tlb_sets = (vector == 0x300) ? NUM_DTLB_SETS : NUM_ITLB_SETS;
++	ulong offset = vpn & num_tlb_sets;
++
++	for (i = 0; i < num_tlb_ways; i++) {
++		mr = (vector == 0x300) ?
++			mfspr_off(SPR_DTLBMR_BASE(0), offset + i*256) :
++			mfspr_off(SPR_ITLBMR_BASE(0), offset + i*256);
++
++		if (vpn == mr >> PAGE_SHIFT)
++			return 0;
++	}
++
++	return 1;
++}
++
++/*
+  * This routine handles page faults.  It determines the address,
+  * and the problem, and then passes it off to one of the appropriate
+  * routines.
+@@ -75,11 +106,15 @@ asmlinkage void do_page_fault(struct pt_regs *regs, unsigned long address,
+ 	 *
+ 	 * This verifies that the fault happens in kernel space
+ 	 * and that the fault was not a protection error.
++	 * TLB misses are always handled before protection errors,
++	 * so protection errors can only happen on TLB hits.
+ 	 */
+-
+-	if (address >= VMALLOC_START &&
+-	    (vector != 0x300 && vector != 0x400) &&
+-	    !user_mode(regs))
++/*
++	if (!address)
++		printk("DEBUG Segfault: %s: !address\n", __func__);
++*/
++	if (address >= VMALLOC_START && !user_mode(regs) &&
++	    tlb_miss(address, vector))
+ 		goto vmalloc_fault;
+ 
+ 	/* If exceptions were enabled, we can reenable them here */
+@@ -211,6 +246,10 @@ bad_area_nosemaphore:
+ 	/* User mode accesses just cause a SIGSEGV */
+ 
+ 	if (user_mode(regs)) {
++		printk("SEGFAULT DEBUG: %s: send sigsegv: address = %x, vector = %x, w = %d\n",
++		       __func__, address, vector, write_acc);
++		show_regs(regs);
++
+ 		info.si_signo = SIGSEGV;
+ 		info.si_errno = 0;
+ 		/* info.si_code has been set above */
+@@ -280,6 +319,9 @@ do_sigbus:
+ 	 * Send a sigbus, regardless of whether we were in kernel
+ 	 * or user mode.
+ 	 */
++	printk("SEGFAULT DEBUG: %s: send sigbus\n", __func__);
++	show_regs(regs);
++
+ 	info.si_signo = SIGBUS;
+ 	info.si_errno = 0;
+ 	info.si_code = BUS_ADRERR;

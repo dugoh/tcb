@@ -1,0 +1,99 @@
+diff --git a/arch/openrisc/include/asm/ptrace.h b/arch/openrisc/include/asm/ptrace.h
+index 6ca1726..f19ac2b 100644
+--- a/arch/openrisc/include/asm/ptrace.h
++++ b/arch/openrisc/include/asm/ptrace.h
+@@ -82,43 +82,4 @@ static inline long regs_return_value(struct pt_regs *regs)
+ 
+ #endif /* __ASSEMBLY__ */
+ 
+-/*
+- * Offsets used by 'ptrace' system call interface.
+- */
+-#define PT_SR         0
+-#define PT_SP         4
+-#define PT_GPR2       8
+-#define PT_GPR3       12
+-#define PT_GPR4       16
+-#define PT_GPR5       20
+-#define PT_GPR6       24
+-#define PT_GPR7       28
+-#define PT_GPR8       32
+-#define PT_GPR9       36
+-#define PT_GPR10      40
+-#define PT_GPR11      44
+-#define PT_GPR12      48
+-#define PT_GPR13      52
+-#define PT_GPR14      56
+-#define PT_GPR15      60
+-#define PT_GPR16      64
+-#define PT_GPR17      68
+-#define PT_GPR18      72
+-#define PT_GPR19      76
+-#define PT_GPR20      80
+-#define PT_GPR21      84
+-#define PT_GPR22      88
+-#define PT_GPR23      92
+-#define PT_GPR24      96
+-#define PT_GPR25      100
+-#define PT_GPR26      104
+-#define PT_GPR27      108
+-#define PT_GPR28      112
+-#define PT_GPR29      116
+-#define PT_GPR30      120
+-#define PT_GPR31      124
+-#define PT_PC	      128
+-#define PT_ORIG_GPR11 132
+-#define PT_SYSCALLNO  136
+-
+ #endif /* __ASM_OPENRISC_PTRACE_H */
+diff --git a/arch/openrisc/include/uapi/asm/ptrace.h b/arch/openrisc/include/uapi/asm/ptrace.h
+index 9760bd1..017e687 100644
+--- a/arch/openrisc/include/uapi/asm/ptrace.h
++++ b/arch/openrisc/include/uapi/asm/ptrace.h
+@@ -19,6 +19,46 @@
+ #ifndef _UAPI__ASM_OPENRISC_PTRACE_H
+ #define _UAPI__ASM_OPENRISC_PTRACE_H
+ 
++
++/*
++ * Offsets used by 'ptrace' system call interface.
++ */
++#define PT_SR         0
++#define PT_SP         4
++#define PT_GPR2       8
++#define PT_GPR3       12
++#define PT_GPR4       16
++#define PT_GPR5       20
++#define PT_GPR6       24
++#define PT_GPR7       28
++#define PT_GPR8       32
++#define PT_GPR9       36
++#define PT_GPR10      40
++#define PT_GPR11      44
++#define PT_GPR12      48
++#define PT_GPR13      52
++#define PT_GPR14      56
++#define PT_GPR15      60
++#define PT_GPR16      64
++#define PT_GPR17      68
++#define PT_GPR18      72
++#define PT_GPR19      76
++#define PT_GPR20      80
++#define PT_GPR21      84
++#define PT_GPR22      88
++#define PT_GPR23      92
++#define PT_GPR24      96
++#define PT_GPR25      100
++#define PT_GPR26      104
++#define PT_GPR27      108
++#define PT_GPR28      112
++#define PT_GPR29      116
++#define PT_GPR30      120
++#define PT_GPR31      124
++#define PT_PC         128
++#define PT_ORIG_GPR11 132
++#define PT_SYSCALLNO  136
++
+ #ifndef __ASSEMBLY__
+ /*
+  * This is the layout of the regset returned by the GETREGSET ptrace call

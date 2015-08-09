@@ -1,0 +1,280 @@
+diff --git a/hw/openrisc/cputimer.c b/hw/openrisc/cputimer.c
+index 4144b34..510b5e8 100644
+--- a/hw/openrisc/cputimer.c
++++ b/hw/openrisc/cputimer.c
+@@ -22,7 +22,7 @@
+ #include "hw/hw.h"
+ #include "qemu/timer.h"
+ 
+-#define TIMER_FREQ    (20 * 1000 * 1000)    /* 20MHz */
++#define TIMER_FREQ    (50 * 1000 * 1000)    /* 50MHz */
+ 
+ /* The time when TTCR changes */
+ static uint64_t last_clk;
+diff --git a/target-openrisc/cpu.h b/target-openrisc/cpu.h
+index 0aff8f2..719ef30 100644
+--- a/target-openrisc/cpu.h
++++ b/target-openrisc/cpu.h
+@@ -232,6 +232,16 @@ enum {
+     ITLB_MASK = (ITLB_SIZE-1),
+ };
+ 
++/* TLB translate register */
++enum {
++    TLB_CC = (1 << 0),
++    TLB_CI = (1 << 1),
++    TLB_WBC = (1 << 2),
++    TLB_WOM = (1 << 3),
++    TLB_A = (1 << 4),
++    TLB_D = (1 << 5),
++};
++
+ /* TLB prot */
+ enum {
+     URE = (1 << 6),
+@@ -258,6 +268,8 @@ typedef struct OpenRISCTLBEntry {
+ 
+ #ifndef CONFIG_USER_ONLY
+ typedef struct CPUOpenRISCTLBContext {
++    uint32_t immucr;
++    uint32_t dmmucr;
+     OpenRISCTLBEntry itlb[ITLB_WAYS][ITLB_SIZE];
+     OpenRISCTLBEntry dtlb[DTLB_WAYS][DTLB_SIZE];
+ 
+diff --git a/target-openrisc/mmu.c b/target-openrisc/mmu.c
+index d354e1f..8eb7529 100644
+--- a/target-openrisc/mmu.c
++++ b/target-openrisc/mmu.c
+@@ -142,9 +142,139 @@ static int cpu_openrisc_get_phys_addr(OpenRISCCPU *cpu,
+ }
+ #endif
+ 
+-static void cpu_openrisc_raise_mmu_exception(OpenRISCCPU *cpu,
+-                                             target_ulong address,
+-                                             int rw, int tlb_error)
++#ifndef CONFIG_USER_ONLY
++static target_ulong cpu_openrisc_readl(target_ulong address)
++{
++    target_ulong data;
++
++    cpu_physical_memory_read(address, &data, 4);
++
++    /* le to be conversion */
++    return ((data & 0x000000ff) << 24 |
++	    (data & 0x0000ff00) << 8  |
++	    (data & 0x00ff0000) >> 8  |
++	    (data & 0xff000000) >> 24);
++}
++
++/*
++ * "Hardware" TLB refill routines.
++ * PTE layout as in the arch specification:
++ * |  31 ... 10 | 9 | 8 ... 6 | 5 | 4 | 3 | 2 | 1 | 0 |
++ *       PPN      L   PP Index  D   A  WOM WBC  CI  CC
++ *
++ *  L  : link
++ *  PPI: Page protection index
++ *  D  : Dirty
++ *  A  : Accessed
++ *  WOM: Weakly ordered memory
++ *  WBC: Write-back cache
++ *  CI : Cache inhibit
++ *  CC : Cache coherent
++ *
++ * PTE layout in Linux:
++ * |  31 ... 12 |  11  | 10 | 9 | 8 | 7 | 6 | 5 | 4 | 3 | 2 | 1 |    0   |
++ *       PPN     SHARED EXEC SWE SRE UWE URE  D   A  WOM WBC  CI  PRESENT
++ *
++ */
++
++/* Number of ptes in the pte table */
++#define PTE_CNT      (1 << (TARGET_PAGE_BITS-2))
++
++#define PTE_PRESENT (1 << 0)
++#define PTE_EXEC    (1 << 10)
++#define PTE_WRITE   (UWE | SWE)
++#define PTE_READ    (URE | SRE)
++
++#define TLBMR_VALID  0x1
++#define ITLB_CONV_MASK (TLB_D | TLB_A | TLB_WOM | TLB_CI)
++#define DTLB_CONV_MASK (SWE | SRE | UWE | URE | ITLB_CONV_MASK)
++
++static int cpu_openrisc_hw_itlb_fill(OpenRISCCPU *cpu,
++				     target_ulong address)
++{
++    int vpn = address >> TARGET_PAGE_BITS;
++    int idx = vpn & ITLB_MASK;
++
++    const target_ulong pgd_offset = (address >> 24) << 2;
++    const target_ulong pte_offset = (vpn & (PTE_CNT-1)) << 2;
++    target_ulong pte_pointer;
++    target_ulong pte;
++
++    target_ulong tr;
++
++    if (!cpu->env.tlb->immucr)
++        return EXCP_ITLBMISS;
++
++    /* get pointer to pte table*/
++    pte_pointer = cpu_openrisc_readl(cpu->env.tlb->immucr + pgd_offset);
++
++    if (!pte_pointer) {
++        return EXCP_IPF;
++    }
++
++    /* get pte value */
++    pte = cpu_openrisc_readl((pte_pointer & TARGET_PAGE_MASK) + pte_offset);
++
++    if (!(pte & PTE_PRESENT)) {
++        return EXCP_IPF;
++    }
++
++    /* fill ITLBTR register */
++    tr = pte & (TARGET_PAGE_MASK | ITLB_CONV_MASK);
++
++    /* Fill in the execute permission bits */
++    if (pte & (PTE_EXEC | PTE_READ | PTE_WRITE)) {
++        tr |= (UXE | SXE);
++    }
++    cpu->env.tlb->itlb[0][idx].tr = tr;
++
++    /* fill ITLBMR register */
++    cpu->env.tlb->itlb[0][idx].mr = (address & TARGET_PAGE_MASK) | TLBMR_VALID;
++
++    return 0;
++}
++
++static int cpu_openrisc_hw_dtlb_fill(OpenRISCCPU *cpu,
++				     target_ulong address)
++{
++    int vpn = address >> TARGET_PAGE_BITS;
++    int idx = vpn & DTLB_MASK;
++
++    const target_ulong pgd_offset = (address >> 24) << 2;
++    const target_ulong pte_offset = (vpn & (PTE_CNT-1)) << 2;
++    target_ulong pte_pointer;
++    target_ulong pte;
++
++    if (!cpu->env.tlb->dmmucr)
++        return EXCP_DTLBMISS;
++
++    /* get pointer to pte table */
++    pte_pointer = cpu_openrisc_readl(cpu->env.tlb->dmmucr + pgd_offset);
++
++    if (!pte_pointer) {
++        return EXCP_DPF;
++    }
++
++    /* get pte value */
++    pte = cpu_openrisc_readl((pte_pointer & TARGET_PAGE_MASK) + pte_offset);
++
++    if (!(pte & PTE_PRESENT)) {
++        return EXCP_DPF;
++    }
++
++    /* fill dtlb tr register */
++    cpu->env.tlb->dtlb[0][idx].tr = pte & (TARGET_PAGE_MASK | DTLB_CONV_MASK);
++
++    /* fill DTLBMR register */
++    cpu->env.tlb->dtlb[0][idx].mr = (address & TARGET_PAGE_MASK) | TLBMR_VALID;
++
++    return 0;
++}
++#endif
++
++static int cpu_openrisc_raise_mmu_exception(OpenRISCCPU *cpu,
++					    target_ulong address,
++					    int rw, int tlb_error)
+ {
+     int exception = 0;
+ 
+@@ -168,16 +298,21 @@ static void cpu_openrisc_raise_mmu_exception(OpenRISCCPU *cpu,
+     case TLBRET_NOMATCH:
+         /* No TLB match for a mapped address */
+         if (rw == 2) {
+-            exception = EXCP_ITLBMISS;
++            exception = cpu_openrisc_hw_itlb_fill(cpu, address);
+         } else {
+-            exception = EXCP_DTLBMISS;
++            exception = cpu_openrisc_hw_dtlb_fill(cpu, address);
+         }
+         break;
+ #endif
+     }
+ 
++    if (!exception)
++	return 0;
++
+     cpu->env.exception_index = exception;
+     cpu->env.eear = address;
++
++    return 1;
+ }
+ 
+ #ifndef CONFIG_USER_ONLY
+@@ -198,8 +333,14 @@ int cpu_openrisc_handle_mmu_fault(CPUOpenRISCState *env,
+                      mmu_idx, TARGET_PAGE_SIZE);
+         ret = 0;
+     } else if (ret < 0) {
+-        cpu_openrisc_raise_mmu_exception(cpu, address, rw, ret);
+-        ret = 1;
++        ret = cpu_openrisc_raise_mmu_exception(cpu, address, rw, ret);
++	if (!ret) {
++	    cpu_openrisc_get_phys_addr(cpu, &physical, &prot,
++				       address, rw);
++	    tlb_set_page(env, address & TARGET_PAGE_MASK,
++			 physical & TARGET_PAGE_MASK, prot | PAGE_EXEC,
++			 mmu_idx, TARGET_PAGE_SIZE);
++	}
+     }
+ 
+     return ret;
+diff --git a/target-openrisc/sys_helper.c b/target-openrisc/sys_helper.c
+index cccbc0e..bbef9ae 100644
+--- a/target-openrisc/sys_helper.c
++++ b/target-openrisc/sys_helper.c
+@@ -81,6 +81,11 @@ void HELPER(mtspr)(CPUOpenRISCState *env,
+     case TO_SPR(0, 64): /* ESR */
+         env->esr = rb;
+         break;
++
++    case TO_SPR(1, 0): /* DMMUCR */
++        env->tlb->dmmucr = rb;
++        break;
++
+     case TO_SPR(1, 512) ... TO_SPR(1, 639): /* DTLBW0MR 0-127 */
+         idx = spr - TO_SPR(1, 512);
+         if (!(rb & 1)) {
+@@ -100,6 +105,11 @@ void HELPER(mtspr)(CPUOpenRISCState *env,
+     case TO_SPR(1, 1280) ... TO_SPR(1, 1407): /* DTLBW3MR 0-127 */
+     case TO_SPR(1, 1408) ... TO_SPR(1, 1535): /* DTLBW3TR 0-127 */
+         break;
++
++    case TO_SPR(2, 0): /* IMMUCR */
++        env->tlb->immucr = rb;
++        break;
++
+     case TO_SPR(2, 512) ... TO_SPR(2, 639):   /* ITLBW0MR 0-127 */
+         idx = spr - TO_SPR(2, 512);
+         if (!(rb & 1)) {
+@@ -214,6 +224,9 @@ target_ulong HELPER(mfspr)(CPUOpenRISCState *env,
+     case TO_SPR(0, 64): /* ESR */
+         return env->esr;
+ 
++    case TO_SPR(1, 0): /* DMMUCR */
++        return env->tlb->dmmucr;
++
+     case TO_SPR(1, 512) ... TO_SPR(1, 639): /* DTLBW0MR 0-127 */
+         idx = spr - TO_SPR(1, 512);
+         return env->tlb->dtlb[0][idx].mr;
+@@ -230,6 +243,9 @@ target_ulong HELPER(mfspr)(CPUOpenRISCState *env,
+     case TO_SPR(1, 1408) ... TO_SPR(1, 1535): /* DTLBW3TR 0-127 */
+         break;
+ 
++    case TO_SPR(2, 0): /* IMMUCR */
++        return env->tlb->immucr;
++
+     case TO_SPR(2, 512) ... TO_SPR(2, 639): /* ITLBW0MR 0-127 */
+         idx = spr - TO_SPR(2, 512);
+         return env->tlb->itlb[0][idx].mr;
+

@@ -1,0 +1,10 @@
+#SYSROOT=PATH/TO/YOUR/SYSROOT
+b=$(basename $1)
+d=$(dirname $1)
+mkdir -p $SYSROOT/$d
+cp $1 $SYSROOT/$d/
+chroot $SYSROOT /usr/bin/qemu-or1k-static $1
+exitcode=$?
+cp $SYSROOT/$d/* $d/
+rm $SYSROOT/$d/*
+exit $exitcode

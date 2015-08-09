@@ -1,0 +1,21 @@
+set(CMAKE_SHARED_LIBRARY_LINK_C_FLAGS "")
+set(CMAKE_SHARED_LIBRARY_LINK_CXX_FLAGS "")
+
+
+# this one is important
+SET(CMAKE_SYSTEM_NAME Linux)
+
+# specify the cross compiler
+SET(CMAKE_C_COMPILER   or1k-linux-musl-gcc)
+SET(CMAKE_CXX_COMPILER or1k-linux-musl-g++)
+
+SET(CMAKE_FIND_ROOT_PATH  /root/or1k-toolchain/or1k-toolchain/sysroot)
+
+
+# search for programs in the build host directories
+SET(CMAKE_FIND_ROOT_PATH_MODE_PROGRAM NEVER)
+# for libraries and headers in the target directories
+SET(CMAKE_FIND_ROOT_PATH_MODE_LIBRARY ONLY)
+SET(CMAKE_FIND_ROOT_PATH_MODE_INCLUDE ONLY)
+
+

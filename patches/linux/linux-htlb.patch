@@ -1,0 +1,101 @@
+--- >8 ---
+diff --git a/arch/openrisc/include/asm/spr_defs.h b/arch/openrisc/include/asm/spr_defs.h
+index 5dbc668..1d20915 100644
+--- a/arch/openrisc/include/asm/spr_defs.h
++++ b/arch/openrisc/include/asm/spr_defs.h
+@@ -226,19 +226,15 @@
+  * Bit definitions for the Data MMU Control Register
+  *
+  */
+-#define SPR_DMMUCR_P2S	   0x0000003e  /* Level 2 Page Size */
+-#define SPR_DMMUCR_P1S	   0x000007c0  /* Level 1 Page Size */
+-#define SPR_DMMUCR_VADDR_WIDTH	0x0000f800  /* Virtual ADDR Width */
+-#define SPR_DMMUCR_PADDR_WIDTH	0x000f0000  /* Physical ADDR Width */
++#define SPR_DMMUCR_PTBP	   0xfffffc00  /* Page Table Base Pointer */
++#define SPR_DMMUCR_DTF	   0x00000001  /* DTLB Flush */
+ 
+ /*
+  * Bit definitions for the Instruction MMU Control Register
+  *
+  */
+-#define SPR_IMMUCR_P2S	   0x0000003e  /* Level 2 Page Size */
+-#define SPR_IMMUCR_P1S	   0x000007c0  /* Level 1 Page Size */
+-#define SPR_IMMUCR_VADDR_WIDTH	0x0000f800  /* Virtual ADDR Width */
+-#define SPR_IMMUCR_PADDR_WIDTH	0x000f0000  /* Physical ADDR Width */
++#define SPR_IMMUCR_PTBP	   0xfffffc00  /* Page Table Base Pointer */
++#define SPR_IMMUCR_ITF	   0x00000001  /* ITLB Flush */
+ 
+ /*
+  * Bit definitions for the Data TLB Match Register
+diff --git a/arch/openrisc/kernel/head.S b/arch/openrisc/kernel/head.S
+index 1d3c9c2..59a3263 100644
+--- a/arch/openrisc/kernel/head.S
++++ b/arch/openrisc/kernel/head.S
+@@ -541,6 +541,15 @@ flush_tlb:
+ 
+ enable_mmu:
+ 	/*
++	 * Make sure the page table base pointer is cleared
++	 * ( = hardware tlb fill disabled)
++	 */
++	l.movhi	r30,0
++	l.mtspr	r0,r30,SPR_DMMUCR
++	l.movhi	r30,0
++	l.mtspr	r0,r30,SPR_IMMUCR
++
++	/*
+ 	 * enable dmmu & immu
+ 	 * SR[5] = 0, SR[6] = 0, 6th and 7th bit of SR set to 0
+ 	 */
+diff --git a/arch/openrisc/mm/fault.c b/arch/openrisc/mm/fault.c
+index e2bfafc..4c07a20 100644
+--- a/arch/openrisc/mm/fault.c
++++ b/arch/openrisc/mm/fault.c
+@@ -78,7 +78,7 @@ asmlinkage void do_page_fault(struct pt_regs *regs, unsigned long address,
+ 	 */
+ 
+ 	if (address >= VMALLOC_START &&
+-	    (vector != 0x300 && vector != 0x400) &&
++	    /*(vector != 0x300 && vector != 0x400) &&*/
+ 	    !user_mode(regs))
+ 		goto vmalloc_fault;
+ 
+diff --git a/arch/openrisc/mm/init.c b/arch/openrisc/mm/init.c
+index e7fdc50..d8b8068 100644
+--- a/arch/openrisc/mm/init.c
++++ b/arch/openrisc/mm/init.c
+@@ -191,6 +191,14 @@ void __init paging_init(void)
+ 	mtspr(SPR_ICBIR, 0x900);
+ 	mtspr(SPR_ICBIR, 0xa00);
+ 
++	/*
++	 * Update the pagetable base pointer, to enable hardware tlb refill if
++	 * supported by the hardware
++	 */
++	mtspr(SPR_IMMUCR, __pa(current_pgd) & SPR_IMMUCR_PTBP);
++	mtspr(SPR_DMMUCR, __pa(current_pgd) & SPR_DMMUCR_PTBP);
++
++
+ 	/* New TLB miss handlers and kernel page tables are in now place.
+ 	 * Make sure that page flags get updated for all pages in TLB by
+ 	 * flushing the TLB and forcing all TLB entries to be recreated
+diff --git a/arch/openrisc/mm/tlb.c b/arch/openrisc/mm/tlb.c
+index 683bd4d..96e6df3 100644
+--- a/arch/openrisc/mm/tlb.c
++++ b/arch/openrisc/mm/tlb.c
+@@ -151,6 +151,14 @@ void switch_mm(struct mm_struct *prev, struct mm_struct *next,
+ 	 */
+ 	current_pgd = next->pgd;
+ 
++	/*
++	 * Update the pagetable base pointer with the new pgd.
++	 * This only have effect on implementations with hardware tlb refill
++	 * support.
++	 */
++	mtspr(SPR_IMMUCR, __pa(current_pgd) & SPR_IMMUCR_PTBP);
++	mtspr(SPR_DMMUCR, __pa(current_pgd) & SPR_DMMUCR_PTBP);
++
+ 	/* We don't have context support implemented, so flush all
+ 	 * entries belonging to previous map
+ 	 */
+--- >8 ---

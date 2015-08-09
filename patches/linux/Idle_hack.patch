@@ -1,0 +1,20 @@
+diff --git a/arch/openrisc/kernel/process.c b/arch/openrisc/kernel/process.c
+index 86b9978..54cacfb 100644
+--- a/arch/openrisc/kernel/process.c
++++ b/arch/openrisc/kernel/process.c
+@@ -75,6 +75,15 @@ void machine_power_off(void)
+ 	__asm__("l.nop 1");
+ }
+ 
++void arch_cpu_idle(void)
++{
++        //cpu_idle_force_poll = 1;
++        local_irq_enable();
++	__asm__(".byte 0x1C,0x00,0x00,0x00");
++}
++
++
++
+ void (*pm_power_off) (void) = machine_power_off;
+ 
+ /*

@@ -1,0 +1,1053 @@
+--- netkit-ntalk-0.17.orig/talk/Makefile
++++ netkit-ntalk-0.17/talk/Makefile
+@@ -6,8 +6,9 @@
+ CFLAGS += -I../include
+ 
+ OBJS = ctl.o ctl_transact.o display.o get_addrs.o get_names.o \
+-	init_disp.o invite.o io.o look_up.o msgs.o talk.o
++	init_disp.o invite.o io.o look_up.o msgs.o talk.o convert.o
+ 
++CFLAGS += -DSUN_HACK # -DBAD_LINUX_HACK
+ LIBS += $(LIBCURSES)
+ 
+ talk: $(OBJS)
+--- netkit-ntalk-0.17.orig/talk/convert.c
++++ netkit-ntalk-0.17/talk/convert.c
+@@ -0,0 +1,46 @@
++/*
++ * This routines handle conversions needed to make standard talk/talkd
++ * compatible with Sun's. SunOS/Solaris use a different protocol than
++ * anyone else.
++ *
++ * What we do here is take SunOS' messages and convert them to standard
++ * ones, so that our talk/talkd can manage them without many changes.
++ *
++ * Juan-Mariano de Goyeneche. jmseyas@dit.upm.es
++ * Mon Aug 10 1998
++ */
++
++#ifdef SUN_HACK
++#include <string.h>
++#include "talk.h"
++
++char personality;
++
++void msg2msg_S(const CTL_MSG* msg, CTL_MSG_S* msg_S)
++{
++	msg_S->type = msg->type;
++	strncpy (msg_S->l_name, msg->l_name, NAME_SIZE_S);
++	msg_S->l_name[NAME_SIZE_S - 1] = '\0';
++	strncpy (msg_S->r_name, msg->r_name, NAME_SIZE_S);
++	msg_S->r_name[NAME_SIZE_S - 1] = '\0';
++	msg_S->pad = 0;
++	msg_S->id_num = msg->id_num;
++	msg_S->pid = msg->pid;
++	strncpy (msg_S->r_tty, msg->r_tty, TTY_SIZE);
++	msg_S->r_tty[TTY_SIZE - 1] = '\0';
++	memcpy(&(msg_S->addr), &(msg->addr), sizeof(msg_S->addr));
++/*	if (*(&(msg_S->addr.sa_family)+1) == (short)0)
++		msg_S->addr.sa_family = 0;*/
++	memcpy(&(msg_S->ctl_addr), &(msg->ctl_addr), sizeof(msg_S->ctl_addr));
++}
++
++void resp_S2resp(const CTL_RESPONSE_S* resp_S, CTL_RESPONSE* resp)
++{
++	resp->vers = TALK_VERSION;
++	resp->type = resp_S->type;
++	resp->answer = resp_S->answer;
++	resp->pad = 0;
++	resp->id_num = resp_S->id_num;
++	memcpy(&(resp->addr), &(resp_S->addr), sizeof(resp->addr));
++}
++#endif
+--- netkit-ntalk-0.17.orig/talk/talk.1
++++ netkit-ntalk-0.17/talk/talk.1
+@@ -139,7 +139,10 @@
+ .Bx 4.2
+ uses a different and even more braindead protocol that is completely
+ incompatible. Some vendor Unixes (particularly those from Sun) have
+-been found to use this old protocol.
++been found to use this old protocol. There's a patch from Juan-Mariano de
++Goyeneche (jmseyas@dit.upm.es) which makes talk/talkd, if compiled with 
++-DSUN_HACK, compatible with SunOS/Solaris' ones. It converts messages from
++one protocol to the other.
+ .Pp
+ Old versions of
+ .Nm talk
+--- netkit-ntalk-0.17.orig/talk/talk.h
++++ netkit-ntalk-0.17/talk/talk.h
+@@ -40,12 +40,56 @@
+ 
+ #include "prot_talkd.h"
+ 
++#ifdef SUN_HACK
++/*
++ * Personalities: NORMAL --> Normal behaviour; (almost) everybody.
++ *		  SUNOS  --> The rest: SunOS/Solaris.
++ */
++#define P_NORMAL 1
++#define P_SUNOS  2
++
++/*
++ * Client(SunOS)->server request message format.
++ */
++
++typedef struct {
++        u_char  type;           /* request type */
++#define NAME_SIZE_S       9
++        char    l_name[NAME_SIZE_S];/* caller's name */
++        char    r_name[NAME_SIZE_S];/* callee's name */
++        u_char  pad;
++        u_int32_t id_num;       /* message id */
++        int32_t pid;            /* caller's process id */
++        char    r_tty[TTY_SIZE];/* callee's tty name */
++        struct  osockaddr addr;         /* old (4.3) style */
++        struct  osockaddr ctl_addr;     /* old (4.3) style */
++} CTL_MSG_S;
++
++/*
++ * Server(SunOS)->client response message format.
++ */
++typedef struct {
++        u_char  type;           /* type of request message, see below */
++        u_char  answer;         /* response to request message, see below */
++        u_short  pad;
++        u_long id_num;       /* message id */
++        struct  osockaddr addr; /* address for establishing conversation */
++} CTL_RESPONSE_S;
++#endif
++
++
++
+ extern int sockt;
+ extern int invitation_waiting;
+ 
+ extern const char *current_state;
+ extern int current_line;
+ 
++#ifdef SUN_HACK
++extern char personality;
++#endif
++
++
+ void p_error(const char *string);
+ void quit(int);
+ void message(const char *mesg);
+@@ -63,6 +107,10 @@
+ void talk(void);
+ void send_delete(void);
+ void display(int hiswin, unsigned char *, int);
++#ifdef SUN_HACK
++void msg2msg_S(const CTL_MSG *, CTL_MSG_S *);
++void resp_S2resp(const CTL_RESPONSE_S *, CTL_RESPONSE *);
++#endif
+ 
+ void set_my_edit_chars(int ctrlh, int ctrlu, int ctrlw);
+ void set_his_edit_chars(int ctrlh, int ctrlu, int ctrlw);
+--- netkit-ntalk-0.17.orig/talk/ctl_transact.c
++++ netkit-ntalk-0.17/talk/ctl_transact.c
+@@ -45,6 +45,7 @@
+ /* #include <netinet/ip.h> looks like this is not needed (no functions used) */
+ #include <string.h>
+ #include <errno.h>
++#include <netdb.h>
+ #include "talk.h"
+ 
+ #define CTL_WAIT 2	/* time to wait for a response, in seconds */
+@@ -69,15 +70,16 @@
+ 	if (to_local_talkd < 0 || to_remote_talkd < 0) {
+ 		p_error("Bad socket");
+ 	}
+-
+-#ifdef SO_BSDCOMPAT
++/* agi: SO_BSDCOMPAT is defined, but obsolete in current kernels
++#ifdef SO_BSDCOMPAT */
+ 	/* 
+ 	 * Linux does some async error return stuff that
+ 	 * really disagrees with us. So we disable it.
+ 	 */
+-	setsockopt(to_local_talkd, SOL_SOCKET, SO_BSDCOMPAT, &on, sizeof(on));
++/*	setsockopt(to_local_talkd, SOL_SOCKET, SO_BSDCOMPAT, &on, sizeof(on));
+ 	setsockopt(to_remote_talkd, SOL_SOCKET, SO_BSDCOMPAT, &on, sizeof(on));
+ #endif
++*/
+ 
+ 	/*
+ 	 * Explicitly talk to the local daemon over loopback.
+@@ -120,20 +122,45 @@
+ 		p_error("getsockname");
+ 	}
+ 	local_addr_for_remote = rem.sin_addr.s_addr;
++
++#ifdef SUN_HACK
++	personality = P_NORMAL;
++#endif
+ }
+ 
+ static void
+ send_packet(CTL_MSG *msg, int sock)
+ {
+ 	int cc;
++#ifdef SUN_HACK
++	CTL_MSG_S msg_S;
++	const void *packet;
++	size_t len;
++
++	if (personality == P_SUNOS) {
++		msg2msg_S(msg, &msg_S);
++		packet = &msg_S;
++		len = sizeof(msg_S);
++	} else {
++		packet = msg;
++		len = sizeof(*msg);
++	}
++
++	cc = send(sock, packet, len, 0);
++#else
+ 	cc = send(sock, msg, sizeof(*msg), 0);
++#endif
+ 	if (cc<0 && errno == EINTR) {
+ 		return;
+ 	}
+ 	else if (cc<0) {
+ 	    p_error("Error on write to talk daemon");
+ 	}
++#ifdef SUN_HACK
++	else if (((size_t) cc) != len) {
++#else
+ 	else if (cc != sizeof(*msg)) {
++#endif
+ 	    p_error("Short write to talk daemon");
+ 	}
+ }
+@@ -170,6 +197,36 @@
+ 	send_packet(&tmp, sock);
+ }
+ 
++#ifdef SUN_HACK
++static void
++reconnect(void)
++{
++	struct sockaddr_in loc, rem;
++
++	daemon_port = getservbyname("talk", "udp")->s_port;
++
++	memset(&loc, 0, sizeof(loc));
++	loc.sin_family = AF_INET;
++	loc.sin_port = daemon_port;
++	loc.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
++
++	if (connect(to_local_talkd, (struct sockaddr *)&loc, sizeof(loc))<0) {
++		p_error("Couldn't connect local control socket");
++	}
++
++	memset(&rem, 0, sizeof(rem));
++	rem.sin_family = AF_INET;
++	rem.sin_port = daemon_port;
++	rem.sin_addr = his_machine_addr;
++
++	if (connect(to_remote_talkd, (struct sockaddr *)&rem, sizeof(rem))<0) {
++		p_error("Couldn't connect remote control socket");
++	}
++
++	personality = P_SUNOS;
++}
++#endif
++
+ /*
+  * SOCKDGRAM is unreliable, so we must repeat messages if we have
+  * not received an acknowledgement within a reasonable amount
+@@ -192,6 +249,9 @@
+ 	do {
+ 		/* resend message until a response is obtained */
+ 		do {
++#ifdef SUN_HACK
++again:
++#endif
+ 			send_packet(mesg, sock);
+ 			read_mask = ctl_mask;
+ 			wait.tv_sec = CTL_WAIT;
+@@ -209,12 +269,35 @@
+ 		 * request/acknowledgements being sent)
+ 		 */
+ 		do {
+-			cc = recv(sock, (char *)rp, sizeof (*rp), 0);
++#ifdef SUN_HACK
++			CTL_RESPONSE_S rp_S;
++
++                        if (personality==P_NORMAL)
++#endif
++				cc = recv(sock, (char *)rp,
++					  sizeof (*rp), 0);
++#ifdef SUN_HACK
++                        else
++ 				cc = recv(sock, (char *)&rp_S,
++ 					  sizeof (rp_S), 0);
++#endif
+ 			if (cc < 0) {
+ 				if (errno == EINTR)
+-					continue;
++					continue;				
++#ifdef SUN_HACK
++				if (errno == ECONNREFUSED &&
++				    personality == P_NORMAL &&
++				    sock == to_remote_talkd) {
++					reconnect();
++					goto again;
++				}
++#endif
+ 				p_error("Error on read from talk daemon");
+ 			}
++#ifdef SUN_HACK
++			if (personality==P_SUNOS) 
++				resp_S2resp(&rp_S, rp);
++#endif
+ 			read_mask = ctl_mask;
+ 			/* an immediate poll */
+ 			timerclear(&wait);
+--- netkit-ntalk-0.17.orig/debian/talkd.prerm
++++ netkit-ntalk-0.17/debian/talkd.prerm
+@@ -0,0 +1,9 @@
++#!/bin/sh
++set -e
++
++if which update-inetd >/dev/null 2>&1; then
++	update-inetd --pattern '[ \t]/usr/sbin/in\.talkd' --disable talk
++	update-inetd --pattern '[ \t]/usr/sbin/in\.ntalkd' --disable ntalk
++fi
++
++#DEBHELPER#
+--- netkit-ntalk-0.17.orig/debian/dirs
++++ netkit-ntalk-0.17/debian/dirs
+@@ -0,0 +1,2 @@
++usr/bin
++usr/share/man/man1
+--- netkit-ntalk-0.17.orig/debian/talkd.postrm
++++ netkit-ntalk-0.17/debian/talkd.postrm
+@@ -0,0 +1,24 @@
++#!/bin/sh
++set -e
++
++remove_talk() {
++	update-inetd --remove 'talk[ \t].*[ \t]/usr/sbin/in.talkd'
++	update-inetd --remove 'ntalk[ \t].*[ \t]/usr/sbin/in.ntalkd'
++}
++
++case "$1" in
++abort-install | remove | abort-upgrade | upgrade | failed-upgrade | disappear)
++	;;
++purge)
++	# If netbase is not installed, then we don't need to do the remove.
++	if which update-inetd >/dev/null 2>&1; then
++		remove_talk
++	fi
++	;;
++*)
++	echo "$0: incorrect arguments: $*" >&2
++	exit 1
++	;;
++esac
++
++#DEBHELPER#
+--- netkit-ntalk-0.17.orig/debian/rules
++++ netkit-ntalk-0.17/debian/rules
+@@ -0,0 +1,83 @@
++#!/usr/bin/make -f
++# $Id: rules,v 1.7 2002/12/22 05:30:26 herbert Exp $
++# Sample debian/rules that uses debhelper. GNU copyright 1997 by Joey Hess.
++
++# Uncomment this to turn on verbose mode. 
++#export DH_VERBOSE=1
++
++build: build-arch build-indep
++build-arch: build-stamp
++build-indep: build-stamp
++build-stamp:
++	dh_testdir
++
++	if [ ! -f MCONFIG ]; then \
++		./configure; \
++		echo "CFLAGS += -g -D_GNU_SOURCE" >> MCONFIG; \
++		echo "CFLAGS += $(shell dpkg-buildflags --get CPPFLAGS)" >> MCONFIG; \
++		echo "CFLAGS += $(shell dpkg-buildflags --get CFLAGS)" >> MCONFIG; \
++		echo "LDFLAGS += $(shell dpkg-buildflags --get LDFLAGS)" >> MCONFIG; \
++	fi
++	$(MAKE)
++
++	touch build-stamp
++
++clean:
++	dh_testdir
++	dh_testroot
++	rm -f build-stamp install-stamp
++
++	[ ! -f MCONFIG ] || $(MAKE) distclean
++
++	dh_clean
++
++install: install-stamp
++install-stamp: build-stamp
++	dh_testdir
++	dh_testroot
++	dh_prep
++	dh_installdirs
++
++	$(MAKE) -C talk install INSTALLROOT=`pwd`/debian/talk \
++		MANDIR=/usr/share/man
++	mv debian/talk/usr/bin/talk debian/talk/usr/bin/netkit-ntalk
++	mv debian/talk/usr/share/man/man1/talk.1 \
++	   debian/talk/usr/share/man/man1/netkit-ntalk.1
++	$(MAKE) -C talkd install INSTALLROOT=`pwd`/debian/talkd \
++		MANDIR=/usr/share/man
++
++	touch install-stamp
++
++# Build architecture-independent files here.
++binary-indep: build install
++# We have nothing to do by default.
++
++# Build architecture-dependent files here.
++binary-arch: build install
++#	dh_testversion
++	dh_testdir
++	dh_testroot
++#	dh_movefiles
++	dh_installdocs
++	dh_installexamples
++	dh_installmenu
++	dh_installlogcheck
++	dh_installcron
++#	dh_installmanpages
++#	dh_undocumented
++	dh_installchangelogs ChangeLog
++	dh_strip
++	dh_compress
++	dh_fixperms
++	dh_installdeb
++	dh_shlibdeps
++	dh_gencontrol
++#	dh_makeshlibs
++	dh_md5sums
++	dh_builddeb
++
++source diff:                                                                  
++	@echo >&2 'source and diff are obsolete - use dpkg-source -b'; false
++
++binary: binary-indep binary-arch
++.PHONY: build clean binary-indep binary-arch binary
+--- netkit-ntalk-0.17.orig/debian/prerm
++++ netkit-ntalk-0.17/debian/prerm
+@@ -0,0 +1,8 @@
++#!/bin/sh
++set -e
++
++if [ "$1" != upgrade ]; then
++	update-alternatives --remove talk /usr/bin/netkit-ntalk
++fi
++
++#DEBHELPER#
+--- netkit-ntalk-0.17.orig/debian/changelog
++++ netkit-ntalk-0.17/debian/changelog
+@@ -0,0 +1,209 @@
++netkit-ntalk (0.17-15) unstable; urgency=low
++
++  * debian/control: add ${misc:Depends} to binary packages entries
++  * Add debian/source/format
++  * debian/rules: Add build-arch/build-indep 
++  * Bumped Standards-Version to 3.9.3, no change.
++  * debian/copyrigh: Include the license instead of referencing
++    /usr/share/common-licenses/BSD
++  * Add dummy debian/watch
++  * post/pre*. Use 'set -e' instead of '-e' in the shebang.
++  * Add hardening flags
++  * debian/rules: make use of dh_installlogcheck. (Closes: #545025)
++  * debian/control: add xinetd as an alternative to openbsd-inetd
++    (Closes: #618811)
++
++ -- Alberto Gonzalez Iniesta <agi@inittab.org>  Thu, 14 Jun 2012 12:54:26 +0200
++
++netkit-ntalk (0.17-14) unstable; urgency=low
++
++  * Depend only on openbsd-inetd since inetutils-inetd does not
++    support 'user.group' notation, and 'tty' group is required.
++    (Closes: #532749)
++  * Bumped Standards-Version to 3.8.2, no change.
++  * Made the package lintian clean again.
++  * Moved to debhelper compat 5.
++
++ -- Alberto Gonzalez Iniesta <agi@inittab.org>  Tue, 21 Jul 2009 15:35:32 +0200
++
++netkit-ntalk (0.17-13) unstable; urgency=low
++
++  * Ignore missing ../MCONFIG in clean target. (Closes: #436715)
++
++ -- Alberto Gonzalez Iniesta <agi@inittab.org>  Wed, 08 Aug 2007 20:55:00 +0200
++
++netkit-ntalk (0.17-12) unstable; urgency=low
++
++  * Updated Build-Dep on libwrap-dev to libwrap0-dev. (Closes: #436312)
++  * Bumped Standards-Version to 3.7.2.2, no change.
++  * Patched talk/ctl_transact.c to stop using SO_BSDCOMPAT
++    (Closes: #355601)
++  * Fixed postinst printf with echo. Thanks Matej Vela for the patch.
++    (Closes: #359045)
++  * Added logcheck file. Thanks Alexander Gerasiov. (Closes: #301935)
++  * Moved to debhelper compatability 4. Created debian/compat.
++  * Added depends on inet-superserver, since maintainer scripts use
++    update-inetd.
++
++ -- Alberto Gonzalez Iniesta <agi@inittab.org>  Tue, 07 Aug 2007 14:42:44 +0200
++
++netkit-ntalk (0.17-11) unstable; urgency=low
++
++  * New maintainer.
++  * debian/control. Removed full stops from packages descriptions 
++    to shut lintian up.
++   * debian/control. Changed 'talk' package description from 
++    'Talk to' to 'Chat with' to shut lintian up.
++
++ -- Alberto Gonzalez Iniesta <agi@inittab.org>  Sat, 12 Mar 2005 12:48:58 +0100
++
++netkit-ntalk (0.17-10) unstable; urgency=medium
++
++  * Beautify error message when attempting to run talkd from command-line.
++    - talkd/talkd.c
++    (Closes: #275478)
++  * Use "which" instead of "command -v" in talkd scripts. (Closes: #293051)
++    - debian/talkd.prerm
++    - debian/talkd.postrm
++  * Fix possible DOS vulnerability in talkd, with patch from security team.
++    - talkd/talkd.c:  Don't accept connections on priviledged ports.
++
++ -- Robert Millan <rmh@debian.org>  Wed, 16 Feb 2005 17:59:06 +0100
++
++netkit-ntalk (0.17-9) unstable; urgency=low
++
++  * New maintainer. (Closes: #249707)
++    - control (Maintainer): Set myself.
++
++ -- Robert Millan <rmh@debian.org>  Wed, 19 May 2004 02:10:10 +0200
++
++netkit-ntalk (0.17-8) unstable; urgency=low
++
++  * Fixed update-alternatives check in postinst (closes: #210863).
++
++ -- Herbert Xu <herbert@debian.org>  Mon, 29 Sep 2003 20:14:46 +1000
++
++netkit-ntalk (0.17-7) unstable; urgency=low
++
++  * Reinstate alarm handler after calling wrappers in talkd (closes: #175185).
++
++ -- Herbert Xu <herbert@debian.org>  Sun,  9 Feb 2003 12:16:00 +1100
++
++netkit-ntalk (0.17-6) unstable; urgency=low
++
++  * Added talkd/ntalkd manual entries.
++  * Use in.talkd in synopsis of talkd man page (closes: #173057).
++
++ -- Herbert Xu <herbert@debian.org>  Sun, 22 Dec 2002 16:30:16 +1100
++
++netkit-ntalk (0.17-5) unstable; urgency=low
++
++  * Removed pre-tcpwrappers DNS check (closes: 134257).
++
++ -- Herbert Xu <herbert@debian.org>  Sun, 17 Feb 2002 08:36:34 +1100
++
++netkit-ntalk (0.17-4) unstable; urgency=low
++
++  * Fixed unset variable that caused talkd to be disabled (closes: #104507).
++
++ -- Herbert Xu <herbert@debian.org>  Sat, 14 Jul 2001 09:17:45 +1000
++
++netkit-ntalk (0.17-3) unstable; urgency=high
++
++  * Removed use of [:blank:] character class (closes: #92466).
++
++ -- Herbert Xu <herbert@debian.org>  Mon,  2 Apr 2001 20:51:06 +1000
++
++netkit-ntalk (0.17-2) unstable; urgency=low
++
++  * Replace commented out lines with commented out lines in inetd.conf
++    (closes: #82235).
++  * Fixed compilation problems with glibc 2.2 (closes: #90368).
++
++ -- Herbert Xu <herbert@debian.org>  Tue, 20 Mar 2001 21:39:57 +1100
++
++netkit-ntalk (0.17-1) unstable; urgency=low
++
++  * New upstream release.
++  * Suggest talkd in talk (closes: #75293).
++
++ -- Herbert Xu <herbert@debian.org>  Sun,  5 Nov 2000 21:10:23 +1100
++
++netkit-ntalk (0.16-4) unstable; urgency=low
++
++  * Added build-time dependency on debhelper (closes: #66748).
++
++ -- Herbert Xu <herbert@debian.org>  Mon, 17 Jul 2000 17:18:38 +1000
++
++netkit-ntalk (0.16-3) unstable; urgency=low
++
++  * Do not use M-p and M-q for scrolling up and down, ALT-p and ALT-q still
++    works though (closes: #66497).  Thanks to Alexey Vyskubov.
++
++ -- Herbert Xu <herbert@debian.org>  Tue,  4 Jul 2000 10:52:01 +1000
++
++netkit-ntalk (0.16-2) unstable; urgency=low
++
++  * Created a new option for talkd (-q) that will disable the logging of
++    successful connects.
++
++ -- Herbert Xu <herbert@debian.org>  Wed, 17 May 2000 19:33:18 +1000
++
++netkit-ntalk (0.16-1) unstable; urgency=low
++
++  * New upstream release.
++  * Don't treat 0xfe as an erase char, ytalk should be fixed instead.
++  * Added support for libwrap (closes: #46189).
++  * Install talk as netkit-ntalk and use alternatives for talk
++    (closes: #57968).
++  * Made compliant with policy 3.1.1.
++
++ -- Herbert Xu <herbert@debian.org>  Thu,  4 May 2000 13:04:23 +1000
++
++netkit-ntalk (0.10-6) frozen unstable; urgency=low
++
++  * Recompiled with libncurses5.
++  * Don't call sendto if we don't have a valid address (closes: #57425,
++    #57583).
++
++ -- Herbert Xu <herbert@debian.org>  Tue, 14 Mar 2000 12:52:18 +1100
++
++netkit-ntalk (0.10-5) unstable; urgency=low
++
++  * Applied the FvK patch (fixes #32086).
++  * Updated package maintainer scripts.
++
++ -- Herbert Xu <herbert@debian.org>  Sat, 25 Sep 1999 09:04:23 +1000
++
++netkit-ntalk (0.10-4) frozen unstable; urgency=low
++
++  * Uploaded to slink.
++
++ -- Herbert Xu <herbert@debian.org>  Sun, 15 Nov 1998 15:09:50 +1100
++
++netkit-ntalk (0.10-3) unstable; urgency=low
++
++  * Rebuilt with libncurses4.
++
++ -- Herbert Xu <herbert@debian.org>  Sat, 31 Oct 1998 17:50:42 +1100
++
++netkit-ntalk (0.10-2) unstable; urgency=low
++
++  * Be more liberal to what to remove (fixes #28027).
++  * Applied Sun compatibility patch from Juan-Mariano de Goyeneche
++    <jmseyas@dit.upm.es> (fixes #26641).
++    Hack to make standard talk/talkd compatible with SunOS/Solaris, which use a
++    different protocol.
++    Talk now understands ytalk's erase character (0xFE) and Solaris' ENTER
++    (Solaris uses ^M as `ENTER', making it incompatible with anybody else,
++    including SunOS, which use normal \n).
++
++ -- Herbert Xu <herbert@debian.org>  Sat, 17 Oct 1998 14:39:43 +1000
++
++netkit-ntalk (0.10-1) unstable; urgency=low
++
++  * Initial Release.
++  * Run as nobody.tty instead of root.
++
++ -- Herbert Xu <herbert@debian.org>  Fri, 11 Sep 1998 13:25:27 +1000
++
+--- netkit-ntalk-0.17.orig/debian/postinst
++++ netkit-ntalk-0.17/debian/postinst
+@@ -0,0 +1,14 @@
++#!/bin/sh
++set -e
++
++if
++	[ "$1" != configure ] || [ -z "$2" ] ||
++	dpkg --compare-versions "$2" lt 0.16-1
++then
++	update-alternatives --install /usr/bin/talk talk \
++				      /usr/bin/netkit-ntalk 100 \
++			    --slave /usr/share/man/man1/talk.1.gz talk.1.gz \
++				    /usr/share/man/man1/netkit-ntalk.1.gz
++fi
++
++#DEBHELPER#
+--- netkit-ntalk-0.17.orig/debian/control
++++ netkit-ntalk-0.17/debian/control
+@@ -0,0 +1,27 @@
++Source: netkit-ntalk
++Section: net
++Priority: optional
++Maintainer: Alberto Gonzalez Iniesta <agi@inittab.org>
++Standards-Version: 3.9.3
++Build-Depends: debhelper (>> 7), libncurses-dev, libwrap0-dev
++
++Package: talk
++Architecture: any
++Depends: ${shlibs:Depends}, ${misc:Depends}
++Replaces: netstd
++Suggests: talkd
++Description: Chat with another user
++ Talk is a visual communication program which copies lines from your terminal
++ to that of another user.
++ .
++ In order to talk locally, you will need to install the talkd package.
++
++Package: talkd
++Architecture: any
++Depends: netbase, openbsd-inetd | xinetd, ${shlibs:Depends}, ${misc:Depends}
++Replaces: netstd
++Description: Remote user communication server
++ Talkd is the server that notifies a user that someone else wants to initiate
++ a conversation.  It acts a repository of invitations, responding to requests
++ by clients wishing to rendezvous to hold a conversation.
++
+--- netkit-ntalk-0.17.orig/debian/watch
++++ netkit-ntalk-0.17/debian/watch
+@@ -0,0 +1 @@
++# Nothing to watch. No upstream
+--- netkit-ntalk-0.17.orig/debian/talkd.dirs
++++ netkit-ntalk-0.17/debian/talkd.dirs
+@@ -0,0 +1,3 @@
++usr/sbin
++usr/share/man/man8
++etc/logcheck/ignore.d.server
+--- netkit-ntalk-0.17.orig/debian/talkd.postinst
++++ netkit-ntalk-0.17/debian/talkd.postinst
+@@ -0,0 +1,56 @@
++#!/bin/sh
++set -e
++
++enable_talk() {
++	update-inetd --pattern '[ \t]/usr/sbin/in\.talkd' --enable talk
++	update-inetd --pattern '[ \t]/usr/sbin/in\.ntalkd' --enable ntalk
++}
++
++remove_talk() {
++	update-inetd --remove "$talkp"
++	update-inetd --remove "$ntalkp"
++}
++
++talkp='talk[ \t].*[ \t]/usr/sbin/in.talkd'
++ntalkp='ntalk[ \t].*[ \t]/usr/sbin/in.ntalkd'
++
++case "$1" in
++abort-upgrade | abort-deconfigure | abort-remove)
++	enable_talk
++	;;
++configure)
++	if [ -n "$2" ] && dpkg --compare-versions "$2" ge 0.16-1; then
++		enable_talk
++	else
++		talk_entry="talk		dgram	udp	wait	nobody.tty	/usr/sbin/in.talkd	in.talkd"
++		ntalk_entry="ntalk		dgram	udp	wait	nobody.tty	/usr/sbin/in.ntalkd	in.ntalkd"
++		if grep "$talkp" /etc/inetd.conf | grep -q '^#'; then
++			talk_entry=\#$talk_entry
++		fi
++		if grep "$ntalkp" /etc/inetd.conf | grep -q '^#'; then
++			ntalk_entry=\#$ntalk_entry
++		fi
++		remove_talk
++		if
++			[ -n "${talk_entry###*}" ] &&
++			grep -q ^talk /etc/inetd.conf
++		then
++			talk_entry=\#$talk_entry
++		fi
++		if
++			[ -n "${ntalk_entry###*}" ] &&
++			grep -q ^ntalk /etc/inetd.conf
++		then
++			ntalk_entry=\#$ntalk_entry
++		fi
++		update-inetd --group BSD --add "$talk_entry"
++		update-inetd --group BSD --add "$ntalk_entry"
++	fi
++	;;
++*)
++	echo "$0: incorrect arguments: $*" >&2
++	exit 1
++	;;
++esac
++
++#DEBHELPER#
+--- netkit-ntalk-0.17.orig/debian/docs
++++ netkit-ntalk-0.17/debian/docs
+@@ -0,0 +1 @@
++BUGS README 
+--- netkit-ntalk-0.17.orig/debian/compat
++++ netkit-ntalk-0.17/debian/compat
+@@ -0,0 +1 @@
++5
+--- netkit-ntalk-0.17.orig/debian/copyright
++++ netkit-ntalk-0.17/debian/copyright
+@@ -0,0 +1,42 @@
++This package was split from netstd by Herbert Xu herbert@debian.org on
++Fri, 11 Sep 1998 13:25:27 +1000.
++
++netstd was created by Peter Tobias tobias@et-inf.fho-emden.de on
++Wed, 20 Jul 1994 17:23:21 +0200.
++
++It was downloaded from ftp://ftp.uk.linux.org/pub/linux/Networking/netkit/.
++
++Copyright:
++
++Copyright (c) 1983 Regents of the University of California.
++
++Redistribution and use in source and binary forms, with or without
++modification, are permitted provided that the following conditions
++are met:
++1. Redistributions of source code must retain the above copyright
++   notice, this list of conditions and the following disclaimer.
++2. Redistributions in binary form must reproduce the above copyright
++   notice, this list of conditions and the following disclaimer in the
++   documentation and/or other materials provided with the distribution.
++3. All advertising materials mentioning features or use of this software
++   must display the following acknowledgement:
++     This product includes software developed by the University of
++     California, Berkeley and its contributors.
++4. Neither the name of the University nor the names of its contributors
++   may be used to endorse or promote products derived from this software
++   without specific prior written permission.
++
++THIS SOFTWARE IS PROVIDED BY THE REGENTS AND CONTRIBUTORS ``AS IS'' AND
++ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
++IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
++ARE DISCLAIMED.  IN NO EVENT SHALL THE REGENTS OR CONTRIBUTORS BE LIABLE
++FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
++DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS
++OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
++HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
++LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
++OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
++SUCH DAMAGE.
++
++
++$Id: copyright,v 1.3 2000/05/01 10:54:09 herbert Exp $
+--- netkit-ntalk-0.17.orig/debian/talkd.logcheck.ignore.server
++++ netkit-ntalk-0.17/debian/talkd.logcheck.ignore.server
+@@ -0,0 +1 @@
++^\w{3} [ :0-9]{11} [._[:alnum:]-]+ talkd\[[0-9]+\]: connect from [[:alnum:].]+$
+--- netkit-ntalk-0.17.orig/debian/source/format
++++ netkit-ntalk-0.17/debian/source/format
+@@ -0,0 +1 @@
++1.0
+--- netkit-ntalk-0.17.orig/talkd/Makefile
++++ netkit-ntalk-0.17/talkd/Makefile
+@@ -4,6 +4,7 @@
+ include ../MRULES
+ 
+ CFLAGS += -I../include
++LIBS += -lwrap
+ 
+ OBJS = talkd.o announce.o process.o table.o print.o repairs.o
+ 
+--- netkit-ntalk-0.17.orig/talkd/talkd.c
++++ netkit-ntalk-0.17/talkd/talkd.c
+@@ -63,11 +63,13 @@
+ #include <string.h>
+ #include <netdb.h>
+ #include <paths.h>
++#include <tcpd.h>
+ #include "prot_talkd.h"
+ #include "proto.h"
+ 
+ #define TIMEOUT 30
+ #define MAXIDLE 120
++#define MINUDPSRCPORT 1024
+ 
+ #if !defined(MAXHOSTNAMELEN)
+ #define	MAXHOSTNAMELEN	64
+@@ -75,6 +77,10 @@
+ char ourhostname[MAXHOSTNAMELEN];
+ 
+ static time_t lastmsgtime;
++#ifndef __USE_GNU
++static char *program_invocation_short_name;
++#endif
++static int quiet;
+ 
+ static void
+ timeout(int ignore)
+@@ -163,11 +169,16 @@
+ 	char theirhost[MAXHOSTNAMELEN];
+ 	const char *theirip;
+ 
+-	struct hostent *hp;
+ 	struct sockaddr_in sn;
+-	int cc, i, ok;
++	struct sockaddr_in server_sin;
++	int cc;
+ 	socklen_t addrlen;
++ 	int theirport;
++
++	struct request_info request;
+ 
++	signal(SIGALRM, timeout);
++	alarm(TIMEOUT);
+ 	addrlen = sizeof(sn);
+ 	cc = recvfrom(0, inbuf, sizeof(inbuf), 0,
+ 		      (struct sockaddr *)&sn, &addrlen);
+@@ -194,6 +205,12 @@
+ 		return;
+ 	}
+ 
++ 	theirport = ntohs(sn.sin_port);
++ 	if (theirport < MINUDPSRCPORT) {
++		syslog(LOG_WARNING, "%d: bad port", theirport);
++		return;
++	}
++
+ 	/* 
+ 	 * If we get here we have an address we can reply to, although
+ 	 * it may not be good for much. If possible, reply to it, because
+@@ -203,38 +220,32 @@
+ 	theirip = inet_ntoa(sn.sin_addr);
+ 	mp = (CTL_MSG *)inbuf;
+ 
+-	/*
+-	 * Check they're not being weenies.
+-	 * We should look into using libwrap here so hosts.deny works.
+-	 * Wrapping talkd with tcpd isn't very useful.
+-	 */
+-	hp = gethostbyaddr((char *)&sn.sin_addr, sizeof(struct in_addr), 
+-			   AF_INET);
+-	if (hp == NULL) {
+-		syslog(LOG_WARNING, "%s: bad dns", theirip);
+-		send_reject_packet(mp, &sn, MACHINE_UNKNOWN, 0);
++	addrlen = sizeof(server_sin);
++	if (getsockname(0, (struct sockaddr *)&server_sin, &addrlen)<0) {
++		syslog(LOG_WARNING, "getsockname: %s", strerror(errno));
+ 		return;
+ 	}
+-	strncpy(theirhost, hp->h_name, sizeof(theirhost));
+-	theirhost[sizeof(theirhost)-1] = 0;
+-
+-	hp = gethostbyname(theirhost);
+-	if (hp == NULL) {
+-		syslog(LOG_WARNING, "%s: bad dns", theirip);
++	request_init(&request,
++		     RQ_FILE, 0,
++		     RQ_DAEMON, program_invocation_short_name,
++		     RQ_CLIENT_SIN, &sn,
++		     RQ_SERVER_SIN, &server_sin,
++		     0);
++	sock_methods(&request);
++	if (!hosts_access(&request)) {
++		refuse(&request);
+ 		send_reject_packet(mp, &sn, MACHINE_UNKNOWN, 0);
+ 		return;
+ 	}
+-
+-	for (i=ok=0; hp->h_addr_list[i] && !ok; i++) {
+-		if (!memcmp(hp->h_addr_list[i], &sn.sin_addr, 
+-			    sizeof(sn.sin_addr))) ok = 1;
+-	}
+-	if (!ok) {
+-		syslog(LOG_WARNING, "%s: bad dns", theirip);
+-		send_reject_packet(mp, &sn, MACHINE_UNKNOWN, 0);
+-		return;
++	if (!quiet) {
++		syslog(LOG_INFO, "connect from %s", eval_client(&request));
+ 	}
+ 
++	signal(SIGALRM, timeout);
++	alarm(TIMEOUT);
++	strncpy(theirhost, eval_hostinfo(request.client), sizeof(theirhost));
++	theirhost[sizeof(theirhost)-1] = 0;
++
+ 	/*
+ 	 * Try to straighten out bad packets.
+ 	 */
+@@ -319,11 +330,16 @@
+ 	socklen_t sz = sizeof(sn);
+ 	int do_debug=0, do_badpackets=0, ch;
+ 
++#ifndef __USE_GNU
++	program_invocation_short_name = argv[0];
++	if (argv[0][0] == '/') {
++		program_invocation_short_name = strrchr(argv[0], '/') + 1;
++	}
++#endif
+ 	/* make sure we're a daemon */
+ 	if (getsockname(0, (struct sockaddr *)&sn, &sz)) {
+-		const char *msg = strerror(errno);
+-		write(2, msg, strlen(msg));
+-		exit(1);
++		printf ("must be run from inetd.\n");
++		exit (1);
+ 	}
+ 	openlog("talkd", LOG_PID, LOG_DAEMON);
+ 	if (gethostname(ourhostname, sizeof(ourhostname) - 1) < 0) {
+@@ -334,16 +350,15 @@
+ 		syslog(LOG_ERR, "chdir: %s: %s", _PATH_DEV, strerror(errno));
+ 		exit(1);
+ 	}
+-	while ((ch = getopt(argc, argv, "dp"))!=-1) {
++	while ((ch = getopt(argc, argv, "dpq"))!=-1) {
+ 		switch (ch) {
+ 		    case 'd': do_debug=1; break;
+ 		    case 'p': do_badpackets=1; break;
++		    case 'q': quiet=1; break;
+ 		}
+ 	}
+ 	set_debug(do_debug, do_badpackets);
+ 
+-	signal(SIGALRM, timeout);
+-	alarm(TIMEOUT);
+ 	for (;;) {
+ 		do_one_packet();
+ 	}
+--- netkit-ntalk-0.17.orig/talkd/table.c
++++ netkit-ntalk-0.17/talkd/table.c
+@@ -46,13 +46,13 @@
+  * Consider this a mis-guided attempt at modularity
+  */
+ #include <sys/param.h>
+-#include <sys/time.h>
+ #include <sys/socket.h>
+ #include <syslog.h>
+ #include <unistd.h>
+ #include <stdio.h>
+ #include <stdlib.h>
+ #include <string.h>
++#include <time.h>
+ #include <netinet/in.h>
+ 
+ #include "prot_talkd.h"
+--- netkit-ntalk-0.17.orig/talkd/talkd.8
++++ netkit-ntalk-0.17/talkd/talkd.8
+@@ -39,8 +39,8 @@
+ .Nm talkd
+ .Nd remote user communication server
+ .Sh SYNOPSIS
+-.Nm talkd
+-.Op Fl dp
++.Nm /usr/sbin/in.talkd
++.Op Fl dpq
+ .Sh DESCRIPTION
+ .Nm Talkd
+ is the server that notifies a user that someone else wants to
+@@ -76,6 +76,9 @@
+ Packet logging mode; writes copies of malformed packets to
+ .Pa /var/log/talkd.packets .
+ This is useful for debugging interoperability problems.
++.Pp
++.Op Fl q
++Don't log successful connects.
+ .Sh SEE ALSO
+ .Xr talk 1 ,
+ .Xr write 1
+--- netkit-ntalk-0.17.orig/talkd/announce.c
++++ netkit-ntalk-0.17/talkd/announce.c
+@@ -49,6 +49,7 @@
+ #include <fcntl.h>
+ #include <string.h>
+ #include <paths.h>
++#include <time.h>
+ #include "prot_talkd.h"
+ #include "proto.h"
+ 

@@ -1,0 +1,70 @@
+diff --git a/arch/openrisc/kernel/ptrace.c b/arch/openrisc/kernel/ptrace.c
+index 44ef5b4..074adcb 100644
+--- a/arch/openrisc/kernel/ptrace.c
++++ b/arch/openrisc/kernel/ptrace.c
+@@ -19,7 +19,6 @@
+ #include <linux/kernel.h>
+ #include <linux/sched.h>
+ #include <linux/string.h>
+-
+ #include <linux/mm.h>
+ #include <linux/errno.h>
+ #include <linux/ptrace.h>
+@@ -158,14 +157,55 @@ void ptrace_disable(struct task_struct *child)
+ long arch_ptrace(struct task_struct *child, long request, unsigned long addr,
+ 		 unsigned long data)
+ {
+-	int ret;
++	struct pt_regs *regs;
++	unsigned long tmp;
++	int ret = 0;
++	unsigned long __user *datalp = (void __user *) data;
+ 
+ 	switch (request) {
++
++	case PTRACE_PEEKUSR:
++		regs = task_pt_regs(child);
++		switch(addr) {
++		case 0 ... 127:
++			tmp = regs->gpr[addr>>2];
++			break;
++		case PT_PC:
++			tmp = regs->pc;
++			break;
++		case PT_ORIG_GPR11:
++			tmp = regs->orig_gpr11;
++			break;
++		default:
++			ret = -EIO;
++			goto out;
++		}
++		ret = put_user(tmp, datalp);
++		break;
++
++        case PTRACE_POKEUSR:
++		regs = task_pt_regs(child);
++                switch(addr) {
++                case 0 ... 127:
++                        regs->gpr[addr>>2] = data;
++                        break;
++                case PT_PC:
++                        regs->pc = data;
++                        break;
++                case PT_ORIG_GPR11:
++                        regs->orig_gpr11 = data;
++                        break;
++                default:
++                        ret = -EIO;
++                        goto out;
++                }
++                break;
++
+ 	default:
+ 		ret = ptrace_request(child, request, addr, data);
+ 		break;
+ 	}
+-
++out:
+ 	return ret;
+ }
+ 

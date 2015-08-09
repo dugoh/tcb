@@ -1,0 +1,18 @@
+cp pyconfig.h pyconfig.h.target
+for i in SIZEOF_LONG SIZEOF_PTHREAD_T SIZEOF_SIZE_T SIZEOF_TIME_T SIZEOF_VOID_P SIZEOF_UINTPTR_T ; do
+sed -i 's,#define '$i',//,' pyconfig.h
+done
+printf "%s\n" 'int main() { printf("%zu\n", sizeof(time_t)); return 0;}' > foo.c
+$HOSTCC -include time.h -include stdio.h foo.c
+l=$(./a.out)
+cat << EOF >> pyconfig.h
+#define SIZEOF_LONG __SIZEOF_LONG__
+#define SIZEOF_PTHREAD_T SIZEOF_LONG
+#define SIZEOF_SIZE_T SIZEOF_LONG
+#define SIZEOF_VOID_P SIZEOF_LONG
+#define SIZEOF_UINTPTR_T SIZEOF_LONG
+#define SIZEOF_TIME_T $l
+EOF
+make Parser/pgen CC="$HOSTCC" -j$MAKE_THREADS
+cp pyconfig.h.target pyconfig.h
+

@@ -1,0 +1,162 @@
+Instead of clearing the 'vector' parameter to do_page_fault()
+to indicate that a fault was caused by a non-protection error,
+make do_page_fault figure this out on its own.
+
+This is done by peeking into the TLBs to see if the page that
+caused the fault is not cached in any of the TLB entries
+(i.e. a TLB miss).
+This works, because only a page fault generated at the same time
+as a TLB hit can be a protection fault, and vice versa.
+
+The motivation for this is that, the 'vector' parameter is
+cleared by the TLB miss exceeption vectors, but in order to
+support hardware page walks (which are supported by the
+architecture) one can not rely on the non-protective
+page fault coming through the TLB miss vectors.
+
+Signed-off-by: Stefan Kristiansson <stefan.kristiansson@saunalahti.fi>
+---
+So, this is my take on solving the problem presented in the
+"Hardware assisted tlb reload in mor1kx" thread, where the tlb miss
+handlers are passing information to do_page_fault() .
+It was the cleanest solution I could come up with that emulates
+the previous behaviour, but there could be some better way to solve
+this on a "higher" level that surpasses my understanding of the
+Linux mm system.
+
+---
+ arch/openrisc/kernel/entry.S | 12 ------------
+ arch/openrisc/kernel/head.S  |  4 ++--
+ arch/openrisc/mm/fault.c     | 42 +++++++++++++++++++++++++++++++++++++-----
+ 3 files changed, 39 insertions(+), 19 deletions(-)
+
+diff --git a/arch/openrisc/kernel/entry.S b/arch/openrisc/kernel/entry.S
+index 46d42b8..f6b923f 100644
+--- a/arch/openrisc/kernel/entry.S
++++ b/arch/openrisc/kernel/entry.S
+@@ -201,15 +201,9 @@ EXCEPTION_ENTRY(_bus_fault_handler)
+ 	 l.nop
+ 
+ /* ---[ 0x300: Data Page Fault exception ]------------------------------- */
+-EXCEPTION_ENTRY(_dtlb_miss_page_fault_handler)
+-	l.and	r5,r5,r0
+-	l.j	1f
+-	 l.nop
+-
+ EXCEPTION_ENTRY(_data_page_fault_handler)
+ 	/* set up parameters for do_page_fault */
+ 	l.ori	r5,r0,0x300		   // exception vector
+-1:
+ 	l.addi  r3,r1,0                    // pt_regs
+ 	/* r4 set be EXCEPTION_HANDLE */   // effective address of fault
+ 
+@@ -281,15 +275,9 @@ EXCEPTION_ENTRY(_data_page_fault_handler)
+ 	l.nop
+ 
+ /* ---[ 0x400: Insn Page Fault exception ]------------------------------- */
+-EXCEPTION_ENTRY(_itlb_miss_page_fault_handler)
+-	l.and	r5,r5,r0
+-	l.j	1f
+-	 l.nop
+-
+ EXCEPTION_ENTRY(_insn_page_fault_handler)
+ 	/* set up parameters for do_page_fault */
+ 	l.ori	r5,r0,0x400		   // exception vector
+-1:
+ 	l.addi  r3,r1,0                    // pt_regs
+ 	/* r4 set be EXCEPTION_HANDLE */   // effective address of fault
+ 	l.ori	r6,r0,0x0		   // !write access
+diff --git a/arch/openrisc/kernel/head.S b/arch/openrisc/kernel/head.S
+index 1d3c9c2..5ebd37a 100644
+--- a/arch/openrisc/kernel/head.S
++++ b/arch/openrisc/kernel/head.S
+@@ -1070,7 +1070,7 @@ d_pte_not_present:
+ 	EXCEPTION_LOAD_GPR2
+ 	EXCEPTION_LOAD_GPR3
+ 	EXCEPTION_LOAD_GPR4
+-	EXCEPTION_HANDLE(_dtlb_miss_page_fault_handler)
++	EXCEPTION_HANDLE(_data_page_fault_handler)
+ 
+ /* ==============================================[ ITLB miss handler ]=== */
+ ENTRY(itlb_miss_handler)
+@@ -1192,7 +1192,7 @@ i_pte_not_present:
+ 	EXCEPTION_LOAD_GPR2
+ 	EXCEPTION_LOAD_GPR3
+ 	EXCEPTION_LOAD_GPR4
+-	EXCEPTION_HANDLE(_itlb_miss_page_fault_handler)
++	EXCEPTION_HANDLE(_insn_page_fault_handler)
+ 
+ /* ==============================================[ boot tlb handlers ]=== */
+ 
+diff --git a/arch/openrisc/mm/fault.c b/arch/openrisc/mm/fault.c
+index e2bfafc..34c755e 100644
+--- a/arch/openrisc/mm/fault.c
++++ b/arch/openrisc/mm/fault.c
+@@ -23,9 +23,15 @@
+ #include <asm/uaccess.h>
+ #include <asm/siginfo.h>
+ #include <asm/signal.h>
++#include <asm/spr_defs.h>
+ 
+-#define NUM_TLB_ENTRIES 64
+-#define TLB_OFFSET(add) (((add) >> PAGE_SHIFT) & (NUM_TLB_ENTRIES-1))
++#define NUM_DTLB_SETS (1 << ((mfspr(SPR_IMMUCFGR) & SPR_IMMUCFGR_NTS) >> \
++			    SPR_DMMUCFGR_NTS_OFF))
++#define NUM_ITLB_SETS (1 << ((mfspr(SPR_IMMUCFGR) & SPR_IMMUCFGR_NTS) >> \
++			    SPR_IMMUCFGR_NTS_OFF))
++
++#define NUM_DTLB_WAYS (1 + (mfspr(SPR_DMMUCFGR) & SPR_DMMUCFGR_NTW))
++#define NUM_ITLB_WAYS (1 + (mfspr(SPR_IMMUCFGR) & SPR_IMMUCFGR_NTW))
+ 
+ unsigned long pte_misses;	/* updated by do_page_fault() */
+ unsigned long pte_errors;	/* updated by do_page_fault() */
+@@ -38,6 +44,31 @@ volatile pgd_t *current_pgd;
+ extern void die(char *, struct pt_regs *, long);
+ 
+ /*
++ * Peeks into the tlbs associated with 'address'.
++ * Return 1 on miss and 0 on hit.
++ */
++static int tlb_miss(ulong address, ulong vector)
++{
++	int i;
++	ulong mr;
++	ulong vpn = address >> PAGE_SHIFT;
++	ulong num_tlb_ways = (vector == 0x300) ? NUM_DTLB_WAYS : NUM_ITLB_WAYS;
++	ulong num_tlb_sets = (vector == 0x300) ? NUM_DTLB_SETS : NUM_ITLB_SETS;
++	ulong offset = vpn & num_tlb_sets;
++
++	for (i = 0; i < num_tlb_ways; i++) {
++		mr = (vector == 0x300) ?
++			mfspr_off(SPR_DTLBMR_BASE(0), offset + i*256) :
++			mfspr_off(SPR_ITLBMR_BASE(0), offset + i*256);
++
++		if (vpn == mr >> PAGE_SHIFT)
++			return 0;
++	}
++
++	return 1;
++}
++
++/*
+  * This routine handles page faults.  It determines the address,
+  * and the problem, and then passes it off to one of the appropriate
+  * routines.
+@@ -75,11 +106,12 @@ asmlinkage void do_page_fault(struct pt_regs *regs, unsigned long address,
+ 	 *
+ 	 * This verifies that the fault happens in kernel space
+ 	 * and that the fault was not a protection error.
++	 * TLB misses are always handled before protection errors,
++	 * so protection errors can only happen on TLB hits.
+ 	 */
+ 
+-	if (address >= VMALLOC_START &&
+-	    (vector != 0x300 && vector != 0x400) &&
+-	    !user_mode(regs))
++	if (address >= VMALLOC_START && !user_mode(regs) &&
++	    tlb_miss(address, vector))
+ 		goto vmalloc_fault;
+ 
+ 	/* If exceptions were enabled, we can reenable them here */
+-- 1.8.1.2
+
