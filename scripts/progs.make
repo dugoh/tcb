@@ -35,7 +35,7 @@ bc_VERSION = -1.06.95
 
 PROGS = busybox nano mcookie bc lua nbench-byte coremark
 
-libs: prelibs musl zlib ncurses openssl expat tslib alsa-lib glib
+libs: prelibs musl zlib ncurses openssl expat tslib alsa-lib libffi glib
 progs: $(PROGS)
 graphics: libpng libjpeg-turbo freetype fontconfig pixman SDL SDL_mixer
 network: lynx openssh nmap curl
@@ -523,6 +523,7 @@ tslib: ac_cv_func_malloc_0_nonnull = yes
 tslib:
 	$(call extractpatch,$@,$($@_VERSION))
 	cd src/$@; ./autogen.sh
+	cd src/$@; ../../fixoldacconfig
 	cd src/$@; CFLAGS="-O2 -fpic" ./configure $(CONFIG_HOST) --sysconfdir=/etc
 	cd src/$@; sed -i~ -e "s;rpl_malloc;malloc;" tests/fbutils.c
 	cd src/$@; sed -i~ -e "s;rpl_malloc;malloc;" config.h
@@ -639,11 +640,11 @@ eudev:
 	sed -i~ -e "s;libdir='/usr;libdir='$(SYSROOT)/usr;" $(SYSROOT)/usr/lib/*.la
 
 libffi_EXTRA_CONFIG = --disable-static
-libffi_VERSION = -3.0.13
+libffi_VERSION = -3.2.1
 libffi:
 	#dont overwrite this
-	####$(call extractpatch,$@,$($@_VERSION))
-	#aclocal automake autoconf after patches
+	$(call extractpatch,$@,$($@_VERSION))
+	cd src/$@; touch ./autogen.sh; chmod +x ./autogen.sh
 	cd src/$@; ./autogen.sh
 	cd src/$@; ./configure $(CONFIG_HOST) $($@_EXTRA_CONFIG)
 	cd src/$@; make clean

@@ -1,0 +1,1 @@
+find . -name "config.sub" -exec sed -i 's/or32/or1k/g' {} \;; find . -name "config.sub" -exec sed -i 's/dietlibc/musl/g' {} \;;
