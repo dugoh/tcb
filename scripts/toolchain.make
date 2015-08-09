@@ -52,7 +52,7 @@ glibc_toolchain:
 
 binutils_VERSION=-\@VERSION\@
 toolchain_binutils2:
-	#$(call extractpatch,binutils,$(binutils_VERSION))
+	$(call extractpatch,binutils,$(binutils_VERSION))
 	#cd src/binutils; patch -Np1 -i ../../patches/binutils-patch.diff
 	cd src/binutils; sed -i -e 's,MAKEINFO="$MISSING makeinfo",MAKEINFO=true,g' configure
 	mkdir -p src/or1k-src-build
