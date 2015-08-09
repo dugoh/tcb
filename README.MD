@@ -14,6 +14,7 @@ TOOLCHAIN
 	apt-get install -y gcc
 	apt-get install -y g++
 	apt-get install -y make
+	apt-get install -y autoconf
 	apt-get install -y texinfo
 	apt-get install -y libmpfr-dev
 	apt-get install -y libgmp3-dev
