@@ -1,25 +1,40 @@
 These scripts should help to build the experimental toolchain, programs and libraries for the openrisc or1k processor.
 The final goal is to build an bootable image with a number of tools available for further development.
 
+Taken from http://jor1k.com/downloads/or1k-toolchain.tar.bz2
 Parts are based on the book "Linux from Scratch"
 
 
 TOOLCHAIN
 ---------
 
-Following tools are required to build the toolchain
-gcc, g++, make, texinfo, libmpfr-dev, libgmp-dev, libmpc-dev, flex, bison, bc
+1. Get some required tools
+	apt-get install -y build-essential
+	apt-get install -y gcc
+	apt-get install -y g++
+	apt-get install -y make
+	apt-get install -y texinfo
+	apt-get install -y libmpfr-dev
+	apt-get install -y libgmp3-dev
+	apt-get install -y libmpc-dev
+	apt-get install -y flex
+	apt-get install -y bison
+	apt-get install -y bc
+	apt-get install -y git
+	apt-get install -y lynx
 
-1. Edit the top lines of the Makefile
-2. Execute
-	make info (check and change in Makefile)	
+2. Get this
+	lynx -source https://github.com/dugoh/tcb/archive/master.tar.gz|gunzip -c |tar -xvf -
+3. Execute
+	cd tcb-master
+	make info (check and change in Makefile if needed)
 	make init
 	make fetchtoolchain
 	make musl_toolchain
 
 To work with this toolchain directly execute
-	make env
-and execute the commands printed
+	make env |grep "^export" >env
+	. ./env
 
 KERNEL
 ------
@@ -30,7 +45,7 @@ Progs and Libs
 --------------
 
 To get a list of available programs and libraries look at the target in scripts/progs.make
-	make fetchprogs (unfortunately this does not work at the moment. You have to download the programs by yourself in the downloads folder. Files can be found under jor1k.com/downloads/)
+	wget -nd -nc -P downloads -r -np http://jor1k.com/downloads/
 	make libs
 	make progs
 	make graphics
