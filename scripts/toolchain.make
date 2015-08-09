@@ -1,7 +1,12 @@
 fetchtoolchain: 
 	cd downloads; wget ftp://sourceware.org/pub/binutils/snapshots/binutils-@VERSION@.tar.bz2 
 	cd src; git clone git://github.com/openrisc/or1k-gcc.git
-	cd src; git clone git://git.openrisc.net/stefan/linux
+	# Below domain is dead
+	#cd src; git clone git://git.openrisc.net/stefan/linux
+	# Below link is a very new kernel
+	#cd src; git clone git://github.com/openrisc/linux.git
+	# This one will do for now
+	cd src; git clone git://github.com/skristiansson/linux.git
 	cd src; mv or1k-linux linux
 	cd src/linux; git checkout smp
 	cd src; git clone git://git.musl-libc.org/musl
