@@ -9,6 +9,7 @@ TOOLCHAIN
 ---------
 
 1. Get some required tools
+```sh
 	apt-get install -y build-essential
 	apt-get install -y gcc
 	apt-get install -y g++
@@ -22,54 +23,71 @@ TOOLCHAIN
 	apt-get install -y bc
 	apt-get install -y git
 	apt-get install -y lynx
-
+```
 2. Get this
+```sh
 	lynx -source https://github.com/dugoh/tcb/archive/master.tar.gz|gunzip -c |tar -xvf -
+```
 3. Execute
+```sh
 	cd tcb-master
 	make info (check and change in Makefile if needed)
 	make init
 	make fetchtoolchain
 	make musl_toolchain
+```
 
 To work with this toolchain directly execute
+```sh
 	make env |grep "^export" >env
 	. ./env
+```
 
 KERNEL
 ------
 Execute following commands
+```sh
 	make linux
+```
 
 Progs and Libs
 --------------
 
 To get a list of available programs and libraries look at the target in scripts/progs.make
+```sh
 	wget -nd -nc -P downloads -r -np http://jor1k.com/downloads/
 	make libs
 	make progs
 	make graphics
+```
 
 Native Building Tools
 ---------------------
+```sh
 	make buildtools
+```
 
 Network 
 -------
+```sh
 	make network
+```
 
 
 DirectFB
 --------
+```sh
 	make libs (if not already done so)
 	make progs (if not already done so)
 	make graphics (if not already done so)
 	make buildtools (if not already done so)
 	make DirectFB 
 	make DirectFB_Examples
+```
 
 X11
 ---
+```sh
 	make libs (if not already done so)
 	make progs (if not already done so)
 	make graphics (if not already done so)
@@ -81,10 +99,12 @@ X11
 	make xfonts
 	make xorg-server
 	make xapps
-
+```
 Image
 -----
 
 Execute following commands
+```sh
 	make buildimage
+```
 	
