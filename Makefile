@@ -1,12 +1,10 @@
 # --------------------------------------
-TOOLCHAIN_DIR = ${HOME}/opt/cross/or1k-linux-musl
-TOOLCHAIN_TARGET = or1k-linux-musl
-SYSROOT := $(CURDIR)/sysroot
-# --------------------------------------
-#TOOLCHAIN_DIR = ${HOME}/opt/cross/or1k-linux-gnu
 #TOOLCHAIN_TARGET = or1k-linux-gnu
-#SYSROOT := $(CURDIR)/sysroot-glibc
+TOOLCHAIN_TARGET = or1k-linux-musl
 # --------------------------------------
+
+TOOLCHAIN_DIR = ${HOME}/opt/cross/$(TOOLCHAIN_TARGET)
+SYSROOT := $(CURDIR)/sysroot
 
 PATH := $(TOOLCHAIN_DIR)/bin:$(PATH)
 
@@ -19,8 +17,8 @@ PKG_CONFIG_LIBDIR := ${SYSROOT}/usr/lib/pkgconfig:${SYSROOT}/usr/share/pkgconfig
 PKG_CONFIG_SYSROOT_DIR := $(SYSROOT)
 
 CMAKE_SYSTEM_NAME := Linux
-CMAKE_C_COMPILER := or1k-linux-musl-gcc
-CMAKE_CXX_COMPILER := or1k-linux-musl-g++
+CMAKE_C_COMPILER := $(TOOLCHAIN_TARGET)-gcc
+CMAKE_CXX_COMPILER := $(TOOLCHAIN_TARGET)-g++
 
 export CMAKE_SYSTEM_NAME
 export CMAKE_C_COMPILER
@@ -85,16 +83,16 @@ dep:
 	@echo "other: e2fsprogs python qemu or1ksim"
 
 env:
-	@echo "===================================================="
-	@echo "Execute following commands in your shell"
-	@echo "===================================================="
+	@echo "#===================================================="
+	@echo "# Execute following commands in your shell"
+	@echo "#===================================================="
 	@echo "export PATH=$(PATH)"
 	@echo "export SYSROOT=$(SYSROOT)"
 	@echo "export PKG_CONFIG_DIR=$(PKG_CONFIG_DIR)"
 	@echo "export PKG_CONFIG_PATH=$(PKG_CONFIG_PATH)"
 	@echo "export PKG_CONFIG_LIBDIR=$(PKG_CONFIG_LIBDIR)"
 	@echo "export PKG_CONFIG_SYSROOT_DIR=$(PKG_CONFIG_SYSROOT_DIR)"
-	@echo "===================================================="
+	@echo "#===================================================="
 
 test:
 	#check if path is working
@@ -171,7 +169,7 @@ linux:
 	sed -i~ -e "/depends on SUPERH/d" src/linux/sound/soc/sh/Kconfig
 	sed -i~ -e "s/8000_96000/11025/" src/linux/sound/soc/sh/fsi.c
 	cd src/linux; make ARCH=openrisc
-	cd src/linux; or1k-linux-musl-objcopy -O binary vmlinux vmlinux.bin
+	cd src/linux; $(TOOLCHAIN_TARGET)-objcopy -O binary vmlinux vmlinux.bin
 	cd src/linux; bzip2 -f --best vmlinux.bin
 
 baselinux:
