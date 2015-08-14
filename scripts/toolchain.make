@@ -13,6 +13,13 @@ fetchtoolchain:
 	cd src; git clone git://github.com/openrisc/or1ksim.git
 	cd src/or1k-gcc; git checkout musl-4.9.1
 
+fetchglibctoolchain:
+	cd downloads; wget ftp://sourceware.org/pub/binutils/snapshots/binutils-@VERSION@.tar.bz2
+	cd src; git clone git://github.com/openrisc/or1k-gcc.git
+	cd src; git clone git://github.com/skristiansson/linux.git
+	cd src; git clone git://github.com/openrisc/or1ksim.git
+	cd src; git clone git://github.com/openrisc/or1k-glibc.git
+
 precheck: 
 	#toolchain_stage4
 	#mkdir -p src/linux/arch/openrisc/support/initramfs/root
