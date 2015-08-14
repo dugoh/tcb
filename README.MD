@@ -1,8 +1,6 @@
-These scripts should help to build the experimental toolchain, programs and libraries for the openrisc or1k processor.
-The final goal is to build an bootable image with a number of tools available for further development.
+These scripts should help to build a toolchain, programs and libraries for the openrisc or1k processor. The final goal is to build a filesystem for jor1k with a number of tools for simulating history.
 
-Taken from http://jor1k.com/downloads/or1k-toolchain.tar.bz2
-Parts are based on the book "Linux from Scratch"
+Initialy Taken from http://jor1k.com/downloads/or1k-toolchain.tar.bz2
 
 
 TOOLCHAIN
@@ -33,7 +31,7 @@ TOOLCHAIN
 3. Execute
 ```sh
 	cd tcb-master
-	make info (check and change in Makefile if needed)
+	make info            #check and change in Makefile if needed
 	make init
 	make fetchtoolchain
 	make musl_toolchain
@@ -41,8 +39,8 @@ TOOLCHAIN
 
 To work with this toolchain directly execute
 ```sh
-	make env |grep "^export" >env
-	. ./env
+	make env |grep "^export" >environment
+	. ./environment
 ```
 
 KERNEL
@@ -79,10 +77,10 @@ Network
 DirectFB
 --------
 ```sh
-	make libs (if not already done so)
-	make progs (if not already done so)
-	make graphics (if not already done so)
-	make buildtools (if not already done so)
+	make libs            #if not already done so
+	make progs           #if not already done so
+	make graphics        #if not already done so
+	make buildtools      #if not already done so
 	make DirectFB 
 	make DirectFB_Examples
 ```
@@ -90,10 +88,10 @@ DirectFB
 X11
 ---
 ```sh
-	make libs (if not already done so)
-	make progs (if not already done so)
-	make graphics (if not already done so)
-	make buildtools (if not already done so)
+	make libs            #if not already done so
+	make progs           #if not already done so
+	make graphics        #if not already done so
+	make buildtools      #if not already done so
 	make xprotoheaders
 	make xlibs
 	make xlibs2
@@ -109,4 +107,3 @@ Execute following commands
 ```sh
 	make buildimage
 ```
-	
