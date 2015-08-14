@@ -9,6 +9,7 @@ TOOLCHAIN
 1. Get some required tools
 ```sh
 	apt-get install -y build-essential
+	apt-get install gawk
 	apt-get install -y gcc
 	apt-get install -y g++
 	apt-get install -y make
