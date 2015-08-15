@@ -168,7 +168,7 @@ linux:
 	sed -i~ -e "/depends on CPU_SUBTYPE_SH7760/d" src/linux/sound/soc/sh/Kconfig
 	sed -i~ -e "/depends on SUPERH/d" src/linux/sound/soc/sh/Kconfig
 	sed -i~ -e "s/8000_96000/11025/" src/linux/sound/soc/sh/fsi.c
-	cd src/linux; make ARCH=openrisc
+	cd src/linux; make ARCH=openrisc CONFIG_CROSS_COMPILE="$(TOOLCHAIN_TARGET)-"
 	cd src/linux; $(TOOLCHAIN_TARGET)-objcopy -O binary vmlinux vmlinux.bin
 	cd src/linux; bzip2 -f --best vmlinux.bin
 
