@@ -1,13 +1,12 @@
 # --------------------------------------
-#TOOLCHAIN_TARGET = or1k-linux-gnu
-TOOLCHAIN_TARGET = or1k-linux-musl
+#TOOLCHAIN = gnu
+TOOLCHAIN = musl
 # --------------------------------------
-
+TOOLCHAIN_TARGET = or1k-linux-$(TOOLCHAIN)
 TOOLCHAIN_DIR = ${HOME}/opt/cross/$(TOOLCHAIN_TARGET)
+
 SYSROOT := $(CURDIR)/sysroot
-
 PATH := $(TOOLCHAIN_DIR)/bin:$(PATH)
-
 PARENT_DIR = $(lastword $(subst /, ,$(PWD)))
 
 #for all the packages
@@ -20,17 +19,17 @@ CMAKE_SYSTEM_NAME := Linux
 CMAKE_C_COMPILER := $(TOOLCHAIN_TARGET)-gcc
 CMAKE_CXX_COMPILER := $(TOOLCHAIN_TARGET)-g++
 
-export CMAKE_SYSTEM_NAME
-export CMAKE_C_COMPILER
-export CMAKE_CXX_COMPILER
-
-
-export PATH
 export SYSROOT
+export PATH
+
 export PKG_CONFIG_DIR
 export PKG_CONFIG_PATH
 export PKG_CONFIG_LIBDIR
 export PKG_CONFIG_SYSROOT_DIR
+
+export CMAKE_SYSTEM_NAME
+export CMAKE_C_COMPILER
+export CMAKE_CXX_COMPILER
 
 deletedir = if test -d $(1); then 				\
 	rm -rf $(1)/ $(1)/.??* $(1)/.[^.] ;			\
