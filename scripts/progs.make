@@ -523,7 +523,7 @@ tslib: ac_cv_func_malloc_0_nonnull = yes
 tslib:
 	$(call extractpatch,$@,$($@_VERSION))
 	cd src/$@; ./autogen.sh
-	cd src/$@; ../../fixoldacconfig
+	cd src/$@; ../../scripts/fixoldacconfig
 	cd src/$@; CFLAGS="-O2 -fpic" ./configure $(CONFIG_HOST) --sysconfdir=/etc
 	cd src/$@; sed -i~ -e "s;rpl_malloc;malloc;" tests/fbutils.c
 	cd src/$@; sed -i~ -e "s;rpl_malloc;malloc;" config.h
