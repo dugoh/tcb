@@ -7,7 +7,7 @@
 	#bootargs = "root=/dev/sda console=uart,mmio,0x90000000,115200 video=ocfb:mode_option=640x400-32";
 
 	chosen {
-		bootargs = "root=host rootfstype=9p rootflags=trans=virtio console=uart,mmio,0x90000000,115200 video=ocfb:mode_option=640x400-16";
+		bootargs = "quiet loglevel=0 root=host rootfstype=9p rootflags=trans=virtio console=uart,mmio,0x90000000,115200 video=ocfb:mode_option=640x400-16";
 	};
 
 	memory@0 {
