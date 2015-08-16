@@ -136,7 +136,7 @@ fsilinux:
 	#cd src/linux; cp ../../patches/linux/fsi.c sound/soc/sh/
 	cd src/linux; cp ../../patches/linux/dummy_sound.c sound/drivers/dummy.c
 	cd src/linux; make ARCH=openrisc
-	cd src/linux; or1k-linux-musl-objcopy -O binary vmlinux vmlinux.bin
+	cd src/linux; $(TOOLCHAIN_TARGET)-objcopy -O binary vmlinux vmlinux.bin
 	cd src/linux; bzip2 -f --best vmlinux.bin
 
 linux:
@@ -178,9 +178,9 @@ baselinux:
 	cd src/linux; make distclean
 	cd src/linux; make ARCH=openrisc defconfig
 	sed -i~ -e "s/or32/or1k/g" src/linux/arch/openrisc/kernel/vmlinux.lds.S
-	sed -i~ -e "s/or32-linux/or1k-linux-musl/g" src/linux/.config
+	sed -i~ -e "s/or32-linux/$(TOOLCHAIN_TARGET)/g" src/linux/.config
 	cd src/linux; make ARCH=openrisc
-	cd src/linux; or1k-linux-musl-objcopy -O binary vmlinux vmlinux.bin
+	cd src/linux; $(TOOLCHAIN_TARGET)-objcopy -O binary vmlinux vmlinux.bin
 	cd src/linux; bzip2 -f --best vmlinux.bin
 
 
