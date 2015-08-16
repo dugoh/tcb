@@ -35,7 +35,7 @@ TOOLCHAIN
 	make info            #check and change in Makefile if needed
 	make init
 	make fetchtoolchain
-	make musl_toolchain
+	make toolchain
 ```
 
 To work with this toolchain directly execute

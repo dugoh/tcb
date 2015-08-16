@@ -1,4 +1,10 @@
-fetchtoolchain: 
+fetchtoolchain:
+	$(MAKE) fetch$(TOOLCHAIN)toolchain
+
+toolchain:
+	$(MAKE) $(TOOLCHAIN)_toolchain
+
+fetchmusltoolchain: 
 	cd downloads; wget ftp://sourceware.org/pub/binutils/snapshots/binutils-@VERSION@.tar.bz2 
 	cd src; git clone git://github.com/openrisc/or1k-gcc.git
 	# Below domain is dead
@@ -13,7 +19,7 @@ fetchtoolchain:
 	cd src; git clone git://github.com/openrisc/or1ksim.git
 	cd src/or1k-gcc; git checkout musl-4.9.1
 
-fetchglibctoolchain:
+fetchgnutoolchain:
 	cd downloads; wget ftp://sourceware.org/pub/binutils/snapshots/binutils-@VERSION@.tar.bz2
 	cd src; git clone git://github.com/openrisc/or1k-gcc.git
 	cd src; git clone git://github.com/skristiansson/linux.git
@@ -48,7 +54,7 @@ musl_toolchain:
 	$(MAKE) toolchain_musl
 	$(MAKE) toolchain_gcc2
 
-glibc_toolchain:
+gnu_toolchain:
 	mkdir -p $(SYSROOT)
 	mkdir -p $(TOOLCHAIN_DIR)/$(TOOLCHAIN_TARGET)
 	$(MAKE) toolchain_binutils2
