@@ -1,6 +1,8 @@
 # --------------------------------------
-#TOOLCHAIN = gnu
-TOOLCHAIN = musl
+TOOLCHAIN = gnu
+#TOOLCHAIN = musl
+KERNELVERSION = 4
+#KERNELVERSION = 3
 # --------------------------------------
 TOOLCHAIN_TARGET = or1k-linux-$(TOOLCHAIN)
 TOOLCHAIN_DIR = ${HOME}/opt/cross/$(TOOLCHAIN_TARGET)
@@ -76,6 +78,7 @@ info:
 	@echo "SYSROOT = $(SYSROOT)"
 	@echo "SRCDIR = $(CURDIR)"
 	@echo "PARENT_DIR = $(PARENT_DIR)"
+	@echo "KERNELVERSION = $(KERNELVERSION)"
 
 dep:
 	@echo "mandatory: gcc make flex bison" 
@@ -157,7 +160,7 @@ linux:
 	cd src/linux; git apply ../../patches/linux/linux-ptrace-headers.diff
 	cp patches/linux/or1ksim.dts src/linux/arch/openrisc/boot/dts
 	cp patches/linux/opencores-kbd.c src/linux/drivers/input/keyboard/
-	cp patches/linux/CONFIG_LINUX src/linux/.config
+	cp patches/linux/CONFIG_LINUX$(KERNELVERSION) src/linux/.config
 	#sed -i~ -e "s/ifdef CONFIG_WISHBONE/ifndef CONFIG_WISHBONE/g" src/linux/drivers/net/ethernet/ethoc.c
 	sed -i~ -e "s/or32/or1k/g" src/linux/arch/openrisc/kernel/vmlinux.lds.S
 	sed -i~ -e "s/depends on ARCH_LPC32XX//g" src/linux/drivers/input/touchscreen/Kconfig
