@@ -15,6 +15,7 @@ TOOLCHAIN
 	apt-get install -y make
 	apt-get install -y autoconf
 	apt-get install -y libtool
+	apt-get install -y pkg-config
 	apt-get install -y texinfo
 	apt-get install -y libmpfr-dev
 	apt-get install -y libgmp3-dev
