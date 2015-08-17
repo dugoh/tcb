@@ -35,7 +35,7 @@ bc_VERSION = -1.06.95
 
 PROGS = busybox nano mcookie bc lua nbench-byte coremark
 
-libs: prelibs musl zlib ncurses openssl expat tslib alsa-lib libffi glib
+libs: prelibs $(TOOLCHAIN) zlib ncurses openssl expat tslib alsa-lib libffi glib
 progs: $(PROGS)
 graphics: libpng libjpeg-turbo freetype fontconfig pixman SDL SDL_mixer
 network: lynx openssh nmap curl
@@ -82,6 +82,9 @@ zlib:
 	cp patches/libz.la $(SYSROOT)/usr/lib/
 	#cp patches/libgcc_s.la $(SYSROOT)/usr/lib/
 	make postlibs
+
+gnu:
+	@echo "This seems to be in place"
 
 alsa-utils_VERSION = -1.0.28
 alsa-utils_EXTRA_CONFIG = --disable-xmlto
