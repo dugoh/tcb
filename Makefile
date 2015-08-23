@@ -93,7 +93,7 @@ env:
 	@echo "#===================================================="
 	@echo "export PATH=$(PATH)"
 	@echo "export SYSROOT=$(SYSROOT)"
-	@echo "export JOR1KSYSROOT=$(SYSROOT)"
+	@echo "export JOR1KSYSROOT=$(JOR1KSYSROOT)"
 	@echo "export PKG_CONFIG_DIR=$(PKG_CONFIG_DIR)"
 	@echo "export PKG_CONFIG_PATH=$(PKG_CONFIG_PATH)"
 	@echo "export PKG_CONFIG_LIBDIR=$(PKG_CONFIG_LIBDIR)"
