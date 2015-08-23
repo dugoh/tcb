@@ -107,6 +107,7 @@ init:
 	mkdir -p $(SYSROOT)
 	mkdir -p $(SYSROOT)/usr/bin
 	mkdir -p $(SYSROOT)/usr/lib
+	mkdir -p jorik-$(SYSROOT)
 
 #build toolchain
 include scripts/toolchain.make
