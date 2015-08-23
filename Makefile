@@ -8,6 +8,7 @@ TOOLCHAIN_TARGET = or1k-linux-$(TOOLCHAIN)
 TOOLCHAIN_DIR = ${HOME}/opt/cross/$(TOOLCHAIN_TARGET)
 
 SYSROOT := $(CURDIR)/sysroot
+JOR1KSYSROOT := $(CURDIR)/jorik-sysroot
 PATH := $(TOOLCHAIN_DIR)/bin:$(PATH)
 PARENT_DIR = $(lastword $(subst /, ,$(PWD)))
 
@@ -22,6 +23,7 @@ CMAKE_C_COMPILER := $(TOOLCHAIN_TARGET)-gcc
 CMAKE_CXX_COMPILER := $(TOOLCHAIN_TARGET)-g++
 
 export SYSROOT
+export JOR1KSYSROOT
 export PATH
 
 export PKG_CONFIG_DIR
@@ -76,6 +78,7 @@ info:
 	@echo "TOOLCHAIN_DIR=$(TOOLCHAIN_DIR)"
 	@echo "PATH = $(PATH)"
 	@echo "SYSROOT = $(SYSROOT)"
+	@echo "JOR1KSYSROOT = $(JOR1KSYSROOT)"
 	@echo "SRCDIR = $(CURDIR)"
 	@echo "PARENT_DIR = $(PARENT_DIR)"
 	@echo "KERNELVERSION = $(KERNELVERSION)"
@@ -90,6 +93,7 @@ env:
 	@echo "#===================================================="
 	@echo "export PATH=$(PATH)"
 	@echo "export SYSROOT=$(SYSROOT)"
+	@echo "export JOR1KSYSROOT=$(SYSROOT)"
 	@echo "export PKG_CONFIG_DIR=$(PKG_CONFIG_DIR)"
 	@echo "export PKG_CONFIG_PATH=$(PKG_CONFIG_PATH)"
 	@echo "export PKG_CONFIG_LIBDIR=$(PKG_CONFIG_LIBDIR)"
@@ -107,7 +111,7 @@ init:
 	mkdir -p $(SYSROOT)
 	mkdir -p $(SYSROOT)/usr/bin
 	mkdir -p $(SYSROOT)/usr/lib
-	mkdir -p jorik-$(SYSROOT)
+	mkdir -p $(JOR1KSYSROOT)
 
 #build toolchain
 include scripts/toolchain.make
