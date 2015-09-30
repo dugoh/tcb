@@ -1,9 +1,8 @@
 script:
-  - cd tcb-master
   - make info
   - make init
-  - echo now  make fetchtoolchain
-  - echo now  make toolchain
+  - make fetchtoolchain
+  - make toolchain
   - make env >environment
   - cat ./environment
-    
+  - make linux  
