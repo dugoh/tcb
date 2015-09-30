@@ -110,6 +110,7 @@ toolchain_linux:
 toolchain_gcc1:
 	cd src/or1k-gcc; git clean -d -f
 	cd src/or1k-gcc; git reset --hard
+	cd src/or1k-gcc; ./contrib/download_prerequisites
 	mkdir -p src/gcc-build
 	rm -rf src/gcc-build/*
 	cd src/gcc-build; CFLAGS="-O0 -g0" ../../src/or1k-gcc/configure \
