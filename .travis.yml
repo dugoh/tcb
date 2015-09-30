@@ -3,9 +3,12 @@ script:
   - make init
   - make fetchtoolchain >/tmp/fetchtoolchain.out 2>&1
   - tail -222 /tmp/fetchtoolchain.out 
-  - make toolchain 2>&1 | tee /tmp/toolchain.out |tr -cd '\n'
+  - make toolchain 2>&1 | tee /tmp/toolchain.out |grep make
+  - echo ++++++++++++++++++++++++++++++++
   - tail -222 /tmp/toolchain.out
   - make env >environment
   - cat ./environment
-  - make linux  2>&1 |tee /tmp/linux.out |tr -cd '\n'
+  - echo ++++++++++++++++++++++++++++++++
+  - make linux  2>&1 |tee /tmp/linux.out |grep make
+  - echo ++++++++++++++++++++++++++++++++
   - tail -222 /tmp/linux.out
