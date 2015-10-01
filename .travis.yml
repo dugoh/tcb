@@ -1,3 +1,7 @@
+addons:
+  apt:
+    packages:
+    - bc
 script:
   - make info
   - make init
