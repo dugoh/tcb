@@ -5,7 +5,7 @@ toolchain:
 	$(MAKE) $(TOOLCHAIN)_toolchain
 
 fetchmusltoolchain: 
-	cd downloads; wget -nc ftp://sourceware.org/pub/binutils/snapshots/binutils-@VERSION@.tar.bz2 
+	cd downloads; wget -nv ftp://sourceware.org/pub/binutils/snapshots/binutils-@VERSION@.tar.bz2 
 	cd src; git clone git://github.com/openrisc/or1k-gcc.git
 	$(MAKE) fetchkernel$(KERNELVERSION)
 	cd src; git clone git://git.musl-libc.org/musl
@@ -13,7 +13,7 @@ fetchmusltoolchain:
 	cd src/or1k-gcc; git checkout musl-4.9.1
 
 fetchgnutoolchain:
-	cd downloads; wget -nc ftp://sourceware.org/pub/binutils/snapshots/binutils-@VERSION@.tar.bz2
+	cd downloads; wget -nv ftp://sourceware.org/pub/binutils/snapshots/binutils-@VERSION@.tar.bz2
 	cd src; git clone git://github.com/openrisc/or1k-gcc.git
 	$(MAKE) fetchkernel$(KERNELVERSION)
 	cd src; git clone git://github.com/openrisc/or1ksim.git
