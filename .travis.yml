@@ -2,6 +2,10 @@ addons:
   apt:
     packages:
     - bc
+    - texinfo
+    - libmpfr-dev
+    - libgmp3-dev
+    - libmpc-dev
 script:
   - make info
   - make init
