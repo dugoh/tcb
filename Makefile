@@ -185,6 +185,7 @@ linux:
 	cd src/linux; make ARCH=openrisc CONFIG_CROSS_COMPILE="$(TOOLCHAIN_TARGET)-"
 	cd src/linux; $(TOOLCHAIN_TARGET)-objcopy -O binary vmlinux vmlinux.bin
 	cd src/linux; bzip2 -f --best vmlinux.bin
+	cd src/linux; cp -p vmlinux.bin.bz2 $(JOR1KSYSROOT)/
 
 baselinux:
 	cd src/linux; git clean -d -x -f
