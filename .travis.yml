@@ -20,6 +20,7 @@ script:
   - tail -222 /tmp/linux.out
   - echo ++++++++++++++++++++++++++++++++
   - make history
+  - find ~/ |grep crypt
   - cd jorik-sysroot
   - git init
   - git config user.name "${USER}"
