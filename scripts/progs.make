@@ -1372,11 +1372,21 @@ zgv:
 	#$(call extractpatch,$@,$($@_VERSION))
 	cd src/$@; make BACKEND=SDL CC=or1k-linux-musl-gcc
 
-HISTPROGS = sysvinit heirloom-sh
+#######################################
+# For building a minimal simh sysroot #
+#######################################
+sysvinit_VERSION = -2.88dsf
+heirloom-sh_VERSION = -050706
+util-linux_VERSION = -2.27-rc1
+libpcap_VERSION = -1.7.4
+simh_VERSION = -master
+nullmodem_VERSION = -master
+coreutils_VERSION = -8.6
+uucp_VERSION = -1.07
 
+HISTPROGS = sysvinit heirloom-sh
 histprogs: $(HISTPROGS)
 histlibs: prelibs $(TOOLCHAIN)
-
 history: fetchhistory histlibs histprogs
 
 sysvinit:
