@@ -1371,3 +1371,48 @@ zgv_VERSION = -5.9
 zgv:
 	#$(call extractpatch,$@,$($@_VERSION))
 	cd src/$@; make BACKEND=SDL CC=or1k-linux-musl-gcc
+
+HISTPROGS = sysvinit heirloom-sh
+
+histprogs: $(HISTPROGS)
+histlibs: prelibs $(TOOLCHAIN)
+
+history: histlibs histprogs
+
+sysvinit:
+	$(call extractpatch,$@,$($@_VERSION))
+	cd src/$@; sed -i -e's/#include <sys\/stat.h>/&\n#define _BSD_SOURCE\n#include <sys\/types.h>\n/' src/mountpoint.c
+	cd src/$@; sed -i -e's/#include <sys\/time.h>/&\n#include <sys\/ttydefaults.h>\n/' src/init.c
+	cd src/$@; sed -i -e's/#include <syslog.h>/&\n#include <sys\/time.h>\n/' src/wall.c
+	cd src/$@; make -C src CC=$(TOOLCHAIN_TARGET)-gcc
+	cd src/$@; $(TOOLCHAIN_TARGET)-strip src/init
+	cd src/$@; cp -p src/init $(JOR1KSYSROOT)/
+	bzip2 --force --best $(JOR1KSYSROOT)/init
+
+heirloom-sh:
+	$(call extractpatch,$@,$($@_VERSION))
+	cd src/$@; make CC=$(TOOLCHAIN_TARGET)-gcc
+	cd src/$@; $(TOOLCHAIN_TARGET)-strip sh
+	cd src/$@; cp -p sh $(JOR1KSYSROOT)/
+	bzip2 --force --best $(JOR1KSYSROOT)/sh
+	cd src/$@; make clean
+	cd src/$@; sed -i -e 's/getopt([[:lower:]]/my&/' bltin.c getopt.c jobs.c ulimit.c
+	cd src/$@; sed -i -e 's/malloc([[:lower:]]/my&/' mapmalloc.c
+	cd src/$@; sed -i -e 's/[[:space:]]free(/ myfree(/' args.c error.c fault.c func.c io.c jobs.c main.c mapmalloc.c name.c stak.c xec.c
+	cd src/$@; sed -i -e 's/^free(/my&/' blok.c mapmalloc.c
+	cd src/$@; sed -i -e 's/free[[:space:]]/my&/' defs.h
+	cd src/$@; sed -i -e 's/realloc(/my&/' mapmalloc.c
+	cd src/$@; make LDFLAGS="-static" CC=$(TOOLCHAIN_TARGET)-gcc
+	cd src/$@; $(TOOLCHAIN_TARGET)-strip sh
+	cd src/$@; cp -p sh $(JOR1KSYSROOT)/sh.static
+	bzip2 --force --best $(JOR1KSYSROOT)/sh.static
+
+fetchhistory:
+	wget -nc -P downloads/ http://download.savannah.gnu.org/releases/sysvinit/sysvinit$(sysvinit_VERSION).tar.bz2
+	wget -nc -P downloads/ http://sourceforge.net/projects/heirloom/files/heirloom-sh/050706/heirloom-sh$(heirloom-sh_VERSION).tar.bz2
+#        wget -nc -P downloads/ https://www.kernel.org/pub/linux/utils/util-linux/v2.27/util-linux$(util-linux_VERSION).tar.gz
+#        wget -nc -P downloads/ http://www.tcpdump.org/release/libpcap$(libpcap_VERSION).tar.gz
+#        wget -nc -O downloads/simh-master.tar.gz https://github.com/simh/simh/archive/master.tar.gz || ls downloads/simh-master.tar.gz >/dev/null
+#        wget -nc -O downloads/nullmodem-master.tar.gz https://github.com/dugoh/nullmodem/archive/master.zip || ls downloads/simh-master.tar.gz >/dev/null
+#        wget -nc -P downloads/ ftp://ftp.gnu.org/gnu/coreutils/coreutils$(coreutils_VERSION).tar.gz
+#        wget -nc -P downloads/ ftp://ftp.gnu.org/gnu/uucp/uucp$(uucp_VERSION).tar.gz
