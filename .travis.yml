@@ -15,9 +15,11 @@ script:
   - echo ++++++++++++++++++++++++++++++++
   - tail -222 /tmp/toolchain.out
   - echo ++++++++++++++++++++++++++++++++
-  - make linux  2>&1 |tee /tmp/linux.out |grep "^make "
+  - make linux  2>&1 |tee /tmp/linux.out |grep "vmlinux"
   - echo ++++++++++++++++++++++++++++++++
   - tail -222 /tmp/linux.out
+  - echo ++++++++++++++++++++++++++++++++
+  - make history
   - cd jorik-sysroot
   - git init
   - git config user.name "${USER}"
