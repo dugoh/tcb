@@ -1377,7 +1377,7 @@ HISTPROGS = sysvinit heirloom-sh
 histprogs: $(HISTPROGS)
 histlibs: prelibs $(TOOLCHAIN)
 
-history: histlibs histprogs
+history: fetchhistory histlibs histprogs
 
 sysvinit:
 	$(call extractpatch,$@,$($@_VERSION))
