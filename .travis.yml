@@ -12,6 +12,7 @@ script:
   - make fetchtoolchain >/tmp/fetchtoolchain.out 2>&1
   - tail -222 /tmp/fetchtoolchain.out 
   - make toolchain 2>&1 | tee /tmp/toolchain.out |grep "^make "
+  - curl -F 'sprunge=<-' "http://sprunge.us" </tmp/toolchain.out
   - echo ++++++++++++++++++++++++++++++++
   - tail -222 /tmp/toolchain.out
   - echo ++++++++++++++++++++++++++++++++
