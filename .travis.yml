@@ -9,22 +9,16 @@ addons:
 script:
   - make info
   - make init
-  - make fetchtoolchain >/tmp/fetchtoolchain.out 2>&1
-  - tail -222 /tmp/fetchtoolchain.out 
-  - make toolchain |tee /tmp/toolchain.out
-  - curl -F 'sprunge=<-' "http://sprunge.us" </tmp/toolchain.out
-  - cat /tmp/toolchain.out
-  - make linux  2>&1 |tee /tmp/linux.out |grep "vmlinux"
-  - echo ++++++++++++++++++++++++++++++++
-  - tail -222 /tmp/linux.out
-  - echo ++++++++++++++++++++++++++++++++
-  - make history
-  - find ~/ |grep crypt
+  - make fetchtoolchain 2>&1 |tee /tmp/fetchtoolchain.out |grep "^make "
+  - make toolchain      2>&1 |tee /tmp/toolchain.out      |grep "^make "
+  - make linux          2>&1 |tee /tmp/linux.out          |grep "vmlinux"
+  - make history        >2&1 |tee /tmp/history.out        |grep "^make "
   - cd jorik-sysroot
   - git init
   - git config user.name "${USER}"
   - git config user.email "${GHP_MAIL}"
   - echo "<HTML><HEAD><TITLE>LINKS</TITLE></HEAD><BODY><ul>" >index.html
+  - cp -p /tmp/*out ./
   - for file in $(ls|grep -v index.html); do (printf '<li><a href="' ; printf "${file}" ; printf '">' ; printf "${file}" ; printf '</a></li>\n') >>index.html ; done
   - echo "</ul></BODY></HTML>" >>index.html
   - git add .
