@@ -11,11 +11,9 @@ script:
   - make init
   - make fetchtoolchain >/tmp/fetchtoolchain.out 2>&1
   - tail -222 /tmp/fetchtoolchain.out 
-  - make toolchain 2>&1 | tee /tmp/toolchain.out |grep "^make "
+  - make toolchain >/dev/null 2>&1 
   - curl -F 'sprunge=<-' "http://sprunge.us" </tmp/toolchain.out
-  - echo ++++++++++++++++++++++++++++++++
-  - tail -222 /tmp/toolchain.out
-  - echo ++++++++++++++++++++++++++++++++
+  - cat /tmp/toolchain.out
   - make linux  2>&1 |tee /tmp/linux.out |grep "vmlinux"
   - echo ++++++++++++++++++++++++++++++++
   - tail -222 /tmp/linux.out
