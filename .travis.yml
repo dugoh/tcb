@@ -9,16 +9,17 @@ addons:
 script:
   - make info
   - make init
-  - make fetchtoolchain 2>&1 |tee /tmp/fetchtoolchain.out |grep "^make "
-  - make toolchain      2>&1 |tee /tmp/toolchain.out      |grep "^make "
-  - make linux          2>&1 |tee /tmp/linux.out          |grep "vmlinux"
-  - make history        >2&1 |tee /tmp/history.out        |grep "^make "
+  - make fetchtoolchain 2>&1 |tee /tmp/fetchtoolchain.out.txt |grep "^make "
+  - make toolchain      2>&1 |tee /tmp/toolchain.out.txt      |grep "^make "
+  - find sysroot        2>&1 |tee /tmp/sysroot.list.txt       |grep "crypt"
+  - make linux          2>&1 |tee /tmp/linux.out.txt          |grep "vmlinux"
+  - make history        2>&1 |tee /tmp/history.out.txt        |grep "^make "
   - cd jorik-sysroot
   - git init
   - git config user.name "${USER}"
   - git config user.email "${GHP_MAIL}"
   - echo "<HTML><HEAD><TITLE>LINKS</TITLE></HEAD><BODY><ul>" >index.html
-  - cp -p /tmp/*out ./
+  - cp -p /tmp/*txt ./
   - for file in $(ls|grep -v index.html); do (printf '<li><a href="' ; printf "${file}" ; printf '">' ; printf "${file}" ; printf '</a></li>\n') >>index.html ; done
   - echo "</ul></BODY></HTML>" >>index.html
   - git add .
