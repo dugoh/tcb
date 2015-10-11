@@ -1421,22 +1421,22 @@ heirloom-sh:
 	bzip2 --force --best $(JOR1KSYSROOT)/sh.static
 
 util-linux:
-        $(call extractpatch,$@,$($@_VERSION))
-        cd src/$@; ./configure $(CONFIG_HOST) --disable-nls --enable-static-programs=mount
-        #cd src/$@; make -n
-        cd src/$@; make mount
-        cd src/$@; cp -p mount $(JOR1KSYSROOT)/mount.static
-        bzip2 --force --best $(JOR1KSYSROOT)/mount.static
+	$(call extractpatch,$@,$($@_VERSION))
+	cd src/$@; ./configure $(CONFIG_HOST) --disable-nls --enable-static-programs=mount
+	#cd src/$@; make -n
+	cd src/$@; make mount
+	cd src/$@; cp -p mount $(JOR1KSYSROOT)/mount.static
+	bzip2 --force --best $(JOR1KSYSROOT)/mount.static
 
 coreutils:
-        $(call extractpatch,$@,$($@_VERSION))
-        cd src/$@; FORCE_UNSAFE_CONFIGURE=1 CFLAGS="-static -O2 -g" ./configure gl_cv_func_working_mktime=yes gl_cv_func_linkat_follow=yes gl_cv_func_mknod_works=yes gl_cv_func_getgroups_works=yes gl_cv_func_printf_infinite_long_double=yes gl_cv_func_fflush_stdin=yes \
-        gl_cv_func_fpurge_works=yes gl_cv_func_fcntl_f_dupfd_cloexec=yes gl_cv_func_printf_infinite=yes gl_cv_func_printf_infinite_long_double=yes gl_cv_func_printf_directive_a=yes gl_cv_func_printf_directive_f=yes gl_cv_func_printf_flag_zero=yes \
-        gl_cv_func_printf_enomem=yes gl_cv_func_memchr_works=yes gl_cv_promoted_mode_t=mode_t gl_cv_func_dup2_works=yes gl_cv_func_fcntl_f_dupfd_works=yes gl_cv_func_fflush_stdin=yes gl_cv_func_gettimeofday_clobber=no \
-        gl_cv_func_posix_spawn_works=yes gl_cv_func_unsetenv_works=yes gl_cv_have_raw_decl_rawmemchr=yes gl_cv_header_working_fcntl_h=yes
-        --host=$(TOOLCHAIN_TARGET) --build=or1k --disable-libcap --disable-nls
-        #cd src/$@; make -n
-        cd src/$@; make
+	$(call extractpatch,$@,$($@_VERSION))
+	cd src/$@; FORCE_UNSAFE_CONFIGURE=1 CFLAGS="-static -O2 -g" ./configure gl_cv_func_working_mktime=yes gl_cv_func_linkat_follow=yes gl_cv_func_mknod_works=yes gl_cv_func_getgroups_works=yes gl_cv_func_printf_infinite_long_double=yes gl_cv_func_fflush_stdin=yes \
+	gl_cv_func_fpurge_works=yes gl_cv_func_fcntl_f_dupfd_cloexec=yes gl_cv_func_printf_infinite=yes gl_cv_func_printf_infinite_long_double=yes gl_cv_func_printf_directive_a=yes gl_cv_func_printf_directive_f=yes gl_cv_func_printf_flag_zero=yes \
+	gl_cv_func_printf_enomem=yes gl_cv_func_memchr_works=yes gl_cv_promoted_mode_t=mode_t gl_cv_func_dup2_works=yes gl_cv_func_fcntl_f_dupfd_works=yes gl_cv_func_fflush_stdin=yes gl_cv_func_gettimeofday_clobber=no \
+	gl_cv_func_posix_spawn_works=yes gl_cv_func_unsetenv_works=yes gl_cv_have_raw_decl_rawmemchr=yes gl_cv_header_working_fcntl_h=yes
+	--host=$(TOOLCHAIN_TARGET) --build=or1k --disable-libcap --disable-nls
+	#cd src/$@; make -n
+	cd src/$@; make
 
 libpcap:
 	$(call extractpatch,$@,$($@_VERSION))
