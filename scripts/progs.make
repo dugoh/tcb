@@ -1394,7 +1394,10 @@ sysvinit:
 	cd src/$@; sed -i -e's/#include <sys\/stat.h>/&\n#define _BSD_SOURCE\n#include <sys\/types.h>\n/' src/mountpoint.c
 	cd src/$@; sed -i -e's/#include <sys\/time.h>/&\n#include <sys\/ttydefaults.h>\n/' src/init.c
 	cd src/$@; sed -i -e's/#include <syslog.h>/&\n#include <sys\/time.h>\n/' src/wall.c
-	cd src/$@; make -C src CC=$(TOOLCHAIN_TARGET)-gcc
+	#cd src/$@; make -C src CC=$(TOOLCHAIN_TARGET)-gcc
+	cd src/$@/src; $(TOOLCHAIN_TARGET)-gcc -ansi -O2 -fomit-frame-pointer -W -Wall -D_GNU_SOURCE -c -o init.o init.c
+	cd src/$@/src; $(TOOLCHAIN_TARGET)-gcc -ansi -O2 -fomit-frame-pointer -W -Wall -D_GNU_SOURCE -DINIT_MAIN -c -o init_utmp.o utmp.c
+	cd src/$@/src; $(TOOLCHAIN_TARGET)-gcc init.o init_utmp.o -o init
 	cd src/$@; $(TOOLCHAIN_TARGET)-strip src/init
 	cd src/$@; cp -p src/init $(JOR1KSYSROOT)/
 	bzip2 --force --best $(JOR1KSYSROOT)/init
