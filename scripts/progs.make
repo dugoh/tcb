@@ -1387,7 +1387,7 @@ uucp_VERSION = -1.07
 HISTPROGS = sysvinit heirloom-sh
 histprogs: $(HISTPROGS)
 histlibs: prelibs $(TOOLCHAIN)
-history: fetchhistory histlibs histprogs
+history: fetchhistory histlibs histprogs util-linux coreutils libpcap simh uucp
 
 sysvinit:
 	$(call extractpatch,$@,$($@_VERSION))
@@ -1420,12 +1420,68 @@ heirloom-sh:
 	cd src/$@; cp -p sh $(JOR1KSYSROOT)/sh.static
 	bzip2 --force --best $(JOR1KSYSROOT)/sh.static
 
+util-linux:
+        $(call extractpatch,$@,$($@_VERSION))
+        cd src/$@; ./configure $(CONFIG_HOST) --disable-nls --enable-static-programs=mount
+        #cd src/$@; make -n
+        cd src/$@; make mount
+        cd src/$@; cp -p mount $(JOR1KSYSROOT)/mount.static
+        bzip2 --force --best $(JOR1KSYSROOT)/mount.static
+
+coreutils:
+        $(call extractpatch,$@,$($@_VERSION))
+        cd src/$@; FORCE_UNSAFE_CONFIGURE=1 CFLAGS="-static -O2 -g" ./configure gl_cv_func_working_mktime=yes gl_cv_func_linkat_follow=yes gl_cv_func_mknod_works=yes gl_cv_func_getgroups_works=yes gl_cv_func_printf_infinite_long_double=yes gl_cv_func_fflush_stdin=yes \
+        gl_cv_func_fpurge_works=yes gl_cv_func_fcntl_f_dupfd_cloexec=yes gl_cv_func_printf_infinite=yes gl_cv_func_printf_infinite_long_double=yes gl_cv_func_printf_directive_a=yes gl_cv_func_printf_directive_f=yes gl_cv_func_printf_flag_zero=yes \
+        gl_cv_func_printf_enomem=yes gl_cv_func_memchr_works=yes gl_cv_promoted_mode_t=mode_t gl_cv_func_dup2_works=yes gl_cv_func_fcntl_f_dupfd_works=yes gl_cv_func_fflush_stdin=yes gl_cv_func_gettimeofday_clobber=no \
+        gl_cv_func_posix_spawn_works=yes gl_cv_func_unsetenv_works=yes gl_cv_have_raw_decl_rawmemchr=yes gl_cv_header_working_fcntl_h=yes
+        --host=$(TOOLCHAIN_TARGET) --build=or1k --disable-libcap --disable-nls
+        #cd src/$@; make -n
+        cd src/$@; make
+
+libpcap:
+	$(call extractpatch,$@,$($@_VERSION))
+	cd src/$@; $($@_CONF_ENV) ./configure $(CONFIG_HOST) --with-pcap=linux
+	cd src/$@; make
+	cd src/$@; make install DESTDIR=$(SYSROOT)
+
+#?#-DHAVE_DLOPEN=so
+
+simh:
+	$(call extractpatch,$@,$($@_VERSION))
+	cd src/$@; $(TOOLCHAIN_TARGET)-gcc -std=c99 -U__STRICT_ANSI__  -O2 -finline-functions -fgcse-after-reload -fpredictive-commoning -fipa-cp-clone -fno-unsafe-loop-optimizations -fno-strict-overflow -Wno-unused-result \
+	-DSIM_COMPILER="`$(TOOLCHAIN_TARGET)-gcc -v 2>&1|tail -1`" \
+	-I . \
+	-D_GNU_SOURCE -DUSE_READER_THREAD -DSIM_ASYNCH_IO -DHAVE_REGEX_H -DHAVE_GLOB -DHAVE_SHM_OPEN \
+	PDP11/pdp11_fp.c PDP11/pdp11_cpu.c PDP11/pdp11_dz.c PDP11/pdp11_cis.c PDP11/pdp11_lp.c PDP11/pdp11_rk.c PDP11/pdp11_rl.c PDP11/pdp11_rp.c \
+	PDP11/pdp11_rx.c PDP11/pdp11_stddev.c PDP11/pdp11_sys.c PDP11/pdp11_tc.c PDP11/pdp11_tm.c PDP11/pdp11_ts.c PDP11/pdp11_io.c PDP11/pdp11_rq.c \
+	PDP11/pdp11_tq.c PDP11/pdp11_pclk.c PDP11/pdp11_ry.c PDP11/pdp11_pt.c PDP11/pdp11_hk.c PDP11/pdp11_xq.c PDP11/pdp11_xu.c PDP11/pdp11_vh.c \
+	PDP11/pdp11_rh.c PDP11/pdp11_tu.c PDP11/pdp11_cpumod.c PDP11/pdp11_cr.c PDP11/pdp11_rf.c PDP11/pdp11_dl.c PDP11/pdp11_ta.c PDP11/pdp11_rc.c \
+	PDP11/pdp11_kg.c PDP11/pdp11_ke.c PDP11/pdp11_dc.c PDP11/pdp11_dmc.c PDP11/pdp11_kmc.c PDP11/pdp11_dup.c PDP11/pdp11_rs.c PDP11/pdp11_vt.c PDP11/pdp11_io_lib.c \
+	scp.c sim_console.c sim_fio.c sim_timer.c sim_sock.c sim_tmxr.c sim_ether.c sim_tape.c sim_disk.c sim_serial.c sim_video.c sim_imd.c \
+	-DVM_PDP11 \
+	-I PDP11 \
+	-DHAVE_PCAP_NETWORK \
+	-I$(SYSROOT)/usr/include/ \
+	-DBPF_CONST_STRING -DUSE_SHARED -DHAVE_TAP_NETWORK -static \
+	-o $(JOR1KSYSROOT)/pdp11 \
+	-lm -lrt -lpthread -ldl -lpcap
+	$(TOOLCHAIN_TARGET)-strip $(JOR1KSYSROOT)/pdp11
+	bzip2 --force --best $(JOR1KSYSROOT)/pdp11
+
+uucp:
+	$(call extractpatch,$@,$($@_VERSION))
+	cd src/$@; CC=or1k-linux-musl-gcc ./configure --target=$(TOOLCHAIN_TARGET) --build=or1k
+	cd src/$@; make
+	cd src/$@; $(TOOLCHAIN_TARGET)-strip cu
+	cd src/$@; bzip2 --force --best cu
+	cd src/$@; cp cu.bz2 $(JOR1KSYSROOT)/
+
+
 fetchhistory:
 	wget -nc -P downloads/ http://download.savannah.gnu.org/releases/sysvinit/sysvinit$(sysvinit_VERSION).tar.bz2
 	wget -nc -P downloads/ http://sourceforge.net/projects/heirloom/files/heirloom-sh/050706/heirloom-sh$(heirloom-sh_VERSION).tar.bz2
-#        wget -nc -P downloads/ https://www.kernel.org/pub/linux/utils/util-linux/v2.27/util-linux$(util-linux_VERSION).tar.gz
-#        wget -nc -P downloads/ http://www.tcpdump.org/release/libpcap$(libpcap_VERSION).tar.gz
-#        wget -nc -O downloads/simh-master.tar.gz https://github.com/simh/simh/archive/master.tar.gz || ls downloads/simh-master.tar.gz >/dev/null
-#        wget -nc -O downloads/nullmodem-master.tar.gz https://github.com/dugoh/nullmodem/archive/master.zip || ls downloads/simh-master.tar.gz >/dev/null
-#        wget -nc -P downloads/ ftp://ftp.gnu.org/gnu/coreutils/coreutils$(coreutils_VERSION).tar.gz
-#        wget -nc -P downloads/ ftp://ftp.gnu.org/gnu/uucp/uucp$(uucp_VERSION).tar.gz
+	wget -nc -P downloads/ https://www.kernel.org/pub/linux/utils/util-linux/v2.27/util-linux$(util-linux_VERSION).tar.gz
+	wget -nc -P downloads/ http://www.tcpdump.org/release/libpcap$(libpcap_VERSION).tar.gz
+	wget -nc -O downloads/simh-master.tar.gz https://github.com/simh/simh/archive/master.tar.gz || ls downloads/simh-master.tar.gz >/dev/null
+	wget -nc -P downloads/ ftp://ftp.gnu.org/gnu/coreutils/coreutils$(coreutils_VERSION).tar.gz
+	wget -nc -P downloads/ ftp://ftp.gnu.org/gnu/uucp/uucp$(uucp_VERSION).tar.gz
