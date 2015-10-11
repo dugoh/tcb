@@ -13,7 +13,7 @@ script:
   - make toolchain      2>&1 |tee /tmp/toolchain.out.txt      |grep "^make "
   - find sysroot        2>&1 |tee /tmp/sysroot.list.txt       |grep "crypt"
   - make linux          2>&1 |tee /tmp/linux.out.txt          |grep "vmlinux"
-  - make history        2>&1 |tee /tmp/history.out.txt        |grep "^make "
+  - make history        2>&1 |tee /tmp/history.out.txt        |grep "bzip"
   - cd jorik-sysroot
   - git init
   - git config user.name "${USER}"
