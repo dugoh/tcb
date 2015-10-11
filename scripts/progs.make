@@ -1387,7 +1387,7 @@ uucp_VERSION = -1.07
 HISTPROGS = sysvinit heirloom-sh
 histprogs: $(HISTPROGS)
 histlibs: prelibs $(TOOLCHAIN)
-history: fetchhistory histlibs histprogs util-linux coreutils libpcap simh uucp
+history: fetchhistory histlibs histprogs util-linux libpcap simh uucp
 
 sysvinit:
 	$(call extractpatch,$@,$($@_VERSION))
@@ -1483,5 +1483,5 @@ fetchhistory:
 	wget -nc -P downloads/ https://www.kernel.org/pub/linux/utils/util-linux/v2.27/util-linux$(util-linux_VERSION).tar.gz
 	wget -nc -P downloads/ http://www.tcpdump.org/release/libpcap$(libpcap_VERSION).tar.gz
 	wget -nc -O downloads/simh-master.tar.gz https://github.com/simh/simh/archive/master.tar.gz || ls downloads/simh-master.tar.gz >/dev/null
-	wget -nc -P downloads/ ftp://ftp.gnu.org/gnu/coreutils/coreutils$(coreutils_VERSION).tar.gz
+	#wget -nc -P downloads/ ftp://ftp.gnu.org/gnu/coreutils/coreutils$(coreutils_VERSION).tar.gz
 	wget -nc -P downloads/ ftp://ftp.gnu.org/gnu/uucp/uucp$(uucp_VERSION).tar.gz
