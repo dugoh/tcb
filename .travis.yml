@@ -1,4 +1,6 @@
+sudo: required
 dist: trusty
+language: c
 addons:
   apt:
     packages:
@@ -7,7 +9,11 @@ addons:
     - libmpfr-dev
     - libgmp3-dev
     - libmpc-dev
+before_script:
+  - ulimit -c unlimited -S
 script:
+  - cat /proc/cpuinfo
+  - free
   - make info
   - make init
   - make fetchtoolchain 2>&1 |tee /tmp/fetchtoolchain.out.txt |grep "^make "
