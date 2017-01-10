@@ -1456,8 +1456,8 @@ simh:
 	PDP11/pdp11_rx.c PDP11/pdp11_stddev.c PDP11/pdp11_sys.c PDP11/pdp11_tc.c PDP11/pdp11_tm.c PDP11/pdp11_ts.c PDP11/pdp11_io.c PDP11/pdp11_rq.c \
 	PDP11/pdp11_tq.c PDP11/pdp11_pclk.c PDP11/pdp11_ry.c PDP11/pdp11_pt.c PDP11/pdp11_hk.c PDP11/pdp11_xq.c PDP11/pdp11_xu.c PDP11/pdp11_vh.c \
 	PDP11/pdp11_rh.c PDP11/pdp11_tu.c PDP11/pdp11_cpumod.c PDP11/pdp11_cr.c PDP11/pdp11_rf.c PDP11/pdp11_dl.c PDP11/pdp11_ta.c PDP11/pdp11_rc.c \
-	PDP11/pdp11_kg.c PDP11/pdp11_ke.c PDP11/pdp11_dc.c PDP11/pdp11_dmc.c PDP11/pdp11_kmc.c PDP11/pdp11_dup.c PDP11/pdp11_rs.c PDP11/pdp11_vt.c PDP11/pdp11_io_lib.c \
-	scp.c sim_console.c sim_fio.c sim_timer.c sim_sock.c sim_tmxr.c sim_ether.c sim_tape.c sim_disk.c sim_serial.c sim_video.c sim_imd.c \
+	PDP11/pdp11_kg.c PDP11/pdp11_ke.c PDP11/pdp11_dc.c PDP11/pdp11_dmc.c PDP11/pdp11_kmc.c PDP11/pdp11_dup.c PDP11/pdp11_rs.c PDP11/pdp11_vt.c PDP11/pdp11_td.c PDP11/pdp11_io_lib.c \
+	scp.c sim_console.c sim_fio.c sim_timer.c sim_sock.c sim_tmxr.c sim_ether.c sim_tape.c sim_disk.c sim_serial.c sim_video.c sim_imd.c sim_card.c \
 	-DVM_PDP11 \
 	-I PDP11 \
 	-DHAVE_PCAP_NETWORK \
@@ -1470,7 +1470,7 @@ simh:
 
 uucp:
 	$(call extractpatch,$@,$($@_VERSION))
-	cd src/$@; CC=or1k-linux-musl-gcc ./configure --target=$(TOOLCHAIN_TARGET) --build=or1k
+	cd src/$@; CC=$(TOOLCHAIN_TARGET)-gcc ./configure --target=$(TOOLCHAIN_TARGET) --build=or1k
 	cd src/$@; make
 	cd src/$@; $(TOOLCHAIN_TARGET)-strip cu
 	cd src/$@; bzip2 --force --best cu
