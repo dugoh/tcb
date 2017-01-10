@@ -100,7 +100,7 @@ toolchain_binutils:
         --disable-werror \
         --without-docdir
 	#cd src/or1k-src-build; echo "MAKEINFO = :" >> Makefile
-	cd src/or1k-src-build; make
+	cd src/or1k-src-build; make -j 4
 	cd src/or1k-src-build; make install
 
 toolchain_linux:
