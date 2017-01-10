@@ -23,7 +23,7 @@ fetchkernel3:
 	cd src; git clone git://github.com/skristiansson/linux.git
 
 fetchkernel4:
-	cd src; git clone git://github.com/openrisc/linux.git
+	cd src; git clone --depth 10 git://github.com/openrisc/linux.git
 	
 precheck: 
 	#toolchain_stage4
