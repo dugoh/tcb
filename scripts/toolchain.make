@@ -14,10 +14,10 @@ fetchmusltoolchain:
 
 fetchgnutoolchain:
 	cd downloads; wget -nv ftp://sourceware.org/pub/binutils/snapshots/binutils-@VERSION@.tar.bz2
-	cd src; git clone git://github.com/openrisc/or1k-gcc.git
+	cd src; git clone --depth 10 git://github.com/openrisc/or1k-gcc.git
 	$(MAKE) fetchkernel$(KERNELVERSION)
-	cd src; git clone git://github.com/openrisc/or1ksim.git
-	cd src; git clone git://github.com/openrisc/or1k-glibc.git
+	cd src; git clone --depth 10 git://github.com/openrisc/or1ksim.git
+	cd src; git clone --depth 10 git://github.com/openrisc/or1k-glibc.git
 
 fetchkernel3:
 	cd src; git clone git://github.com/skristiansson/linux.git
