@@ -8,7 +8,7 @@
 #include <string.h>
 
 
-// compile with gcc patches/fs2xml.c -lbz2
+// compile with gcc -O2 fs2xml.c -lbz2 -o fs2xml
 
 struct inode
 {
