@@ -116,8 +116,8 @@ nmap_EXTRA_CONFIG = --with-libpcap=included --without-liblua --with-pcap=linux -
 #nmap_EXTRA_CONFIG = --disable-nls --with-pcap=included --without-liblua --without-zenmap
 #nmap_EXTRA_CONFIG = --disable-nls --with-pcap=linux --without-liblua --without-zenmap
 
-libpcap_VERSION = -1.5.3
-libpcap_EXTRA_CONFIG = --with-pcap=included
+#libpcap_VERSION = -1.5.3
+#libpcap_EXTRA_CONFIG = --with-pcap=included
 
 lua_VERSION = -5.2.2
 
@@ -177,7 +177,7 @@ physfs:
 	cd src/$@/build; make
 	cd src/$@/build; make install
 
-netsurf ytalk libgpg-error libgcrypt libiconv irssi libexif libwebp nano joe libdrm mtdev w3m libpcap curl qemu bochs webkitgtk:
+netsurf ytalk libgpg-error libgcrypt libiconv irssi libexif libwebp nano joe libdrm mtdev w3m curl qemu bochs webkitgtk:
 	$(call extractpatch,$@,$($@_VERSION))
 	cd src/$@; $($@_CONF_ENV) ./configure $(CONFIG_HOST) $($@_EXTRA_CONFIG)
 	#sed -i~ -e "s;lt_sysroot=;lt_sysroot=$(SYSROOT);" src/$@/libtool
