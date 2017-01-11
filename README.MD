@@ -1,6 +1,6 @@
-These scripts should help to build a toolchain, programs and libraries for the openrisc or1k processor. The final goal is to build a filesystem for jor1k with a number of tools for simulating history.
+These scripts should help to build a toolchain, programs and libraries for the openrisc or1k processor. The final goal is to build a filesystem for jor1k with a minimal number of tools for simulating history.
 
-Initialy Taken from http://jor1k.com/downloads/or1k-toolchain.tar.bz2
+Initialy Taken from http://jor1k.com/downloads/or1k-toolchain.tar.bz2 and then butchered.
 
 
 TOOLCHAIN
@@ -47,21 +47,33 @@ To work with this toolchain directly execute
 
 KERNEL
 ------
-Execute following commands
+Execute following command
 ```sh
 	make linux
 ```
+
+Progs for simulating history
+----------------------------
+Execute following command
+
+```sh
+	make history
+```
+
+**Not sure if the below still works!**
 
 Progs and Libs
 --------------
 
 To get a list of available programs and libraries look at the target in scripts/progs.make
+
 ```sh
 	wget -nd -nc -P downloads -r -np http://jor1k.com/downloads/
 	make libs
 	make progs
 	make graphics
 ```
+
 
 Native Building Tools
 ---------------------
