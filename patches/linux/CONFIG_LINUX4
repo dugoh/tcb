@@ -1162,7 +1162,6 @@ CONFIG_OR1K_PIC=y
 # FPGA Configuration Support
 #
 # CONFIG_FPGA is not set
-CONFIG_NULLMODEM=y
 
 #
 # File systems
