@@ -11,6 +11,7 @@ addons:
     - libgmp3-dev
     - libmpc-dev
 before_script:
+- sc --doctor
 - ulimit -c unlimited -S
 script:
 - python --version
