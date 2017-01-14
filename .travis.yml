@@ -2,7 +2,6 @@ sudo: required
 dist: trusty
 language: c
 addons:
-  sauce_connect: true
   apt:
     packages:
     - bc
@@ -11,34 +10,32 @@ addons:
     - libgmp3-dev
     - libmpc-dev
 before_script:
-- sc --doctor
-- ulimit -c unlimited -S
+  - ulimit -c unlimited -S
 script:
-- python --version
-- make info
-- make init
-- make fetchtoolchain 2>&1 |tee /tmp/fetchtoolchain.out.txt |grep "^make "
-- make toolchain      2>&1 |tee /tmp/toolchain.out.txt      |grep -n .|grep "10:"
-- make linux          2>&1 |tee /tmp/linux.out.txt          |grep "vmlinux"
-- make history        2>&1 |tee /tmp/history.out.txt        |grep "bzip"
-- cd sysroot
-- tar -cvf ../jorik-sysroot/sysroot.tar ./*
-- cd ../jorik-sysroot
-- git init
-- git config user.name "${USER}"
-- git config user.email "${GHP_MAIL}"
-- echo "<HTML><HEAD><TITLE>LINKS</TITLE></HEAD><BODY><ul>" >index.html
-- cp -p /tmp/*txt ./
-- for file in $(ls|grep -v index.html); do (printf '<li><a href="' ; printf "${file}"
-  ; printf '">' ; printf "${file}" ; printf '</a></li>\n') >>index.html ; done
-- echo "</ul></BODY></HTML>" >>index.html
-- git add .
-- git commit -m "Deploy to GitHub Pages"
-- git push --force --quiet https://${GHP_TOKEN}@github.com/${TRAVIS_REPO_SLUG}.git
-  master:gh-pages >/dev/null 2>&1
+  - cat /proc/cpuinfo
+  - free
+  - make info
+  - make init
+  - make fetchtoolchain 2>&1 |tee /tmp/fetchtoolchain.out.txt |grep "^make "
+  - make toolchain      2>&1 |tee /tmp/toolchain.out.txt      |grep -n .|grep "10:"
+#  - find sysroot        2>&1 |tee /tmp/sysroot.list.txt       |grep "crypt"
+  - make linux          2>&1 |tee /tmp/linux.out.txt          |grep "vmlinux"
+  - make history        2>&1 |tee /tmp/history.out.txt        |grep "bzip"
+  - cd sysroot
+  - tar -cvf ../jorik-sysroot/sysroot.tar ./*
+  - cd ../jorik-sysroot
+  - git init
+  - git config user.name "${USER}"
+  - git config user.email "${GHP_MAIL}"
+  - echo "<HTML><HEAD><TITLE>LINKS</TITLE></HEAD><BODY><ul>" >index.html
+  - cp -p /tmp/*txt ./
+  - for file in $(ls|grep -v index.html); do (printf '<li><a href="' ; printf "${file}" ; printf '">' ; printf "${file}" ; printf '</a></li>\n') >>index.html ; done
+  - echo "</ul></BODY></HTML>" >>index.html
+  - git add .
+  - git commit -m "Deploy to GitHub Pages"
+  - git push --force --quiet https://${GHP_TOKEN}@github.com/${TRAVIS_REPO_SLUG}.git master:gh-pages >/dev/null 2>&1
+env:
 env:
   global:
-  - secure: QbQg9HGg51hKco7nL59fDJawQFo69Qtok0FiI0h4MHfSmSulcgjSMrt+0t4rMBeChi4EsrCqXWTnfHLxU0YPMlV1vhmp9VO8TLTPJSngI2T5M1BPKUs0jdsOTjefP/Z6j2N6FaMfX55m6nWo/8ta0kkv/OHXbEc408oFAzH1QtZNQ/nm2W1a1Z1vlofGtbS8t7qpYG4nStPz6cbMFhvlyouGm84PV0tGnIdZ6RTTvXQb5J+DxiiPR5Z85+zguda8Z8MjDpkZnHm4lTAZ68Arl2PczeAGnLamWOtAC/3rCTi8OkuLrlumfOKGeEFLG18fFrDC8Co09st6q2hHi/a9GDVK+E3Gy88IID6uI8rZ6H7zr3Zpumj7NzHtzP9vzUAdIRPWEXmKDAFMZlgO0OZ0fGIeXRlx1BUM/N7pHP0LghrcLJV7DqvmzJ3hYMKrb+bwmjeug4S0Q+HNCu7rasuWCO1CwU4bqTsn6M8gqz/LLv72wjdUBxoAIOe52R+08PypCK7gHXdVczSuex/fHrQ3e9w7Ces2v4tXf0SPTzsoih0oHJOW/L6qeVEPJ8lxaLX4S8v/V6vc3/ZuVnDuThqvLA7hw9pCkIeyb1yv636YX9Yy4uXRHITFQdsiw/58efKrN1MI+iHrfKI82VO9tyrSTZzrEJ/CP3jsEGYIjU1yCKw=
-  - secure: xIbWlTRM5ASi9KfkKT+C/zYzZHhOgiT7s1BKS1SHy92Md86jUyzzcwKQ5cmtcw2ur94J4fPeR6OZk27h9+qVQyOz0uA5kXftaeJrStvJS2KQ3QdO/Pwp1fUAzgnVz+vXv3mAWDlkapgcH2aYLEbEZ3H+jMAYzmvSnKYXPwNPYHf/rs2qBB5F4YWS8WPe6Gt7g9E/jJZBUmLMPXYR0FEWS41ZmbC7suNh3HLg6LhQxiSy8whJm23RzKFzKnb+6qoEqw9gblTChdGF7YvWTaPBSwepVRZkAixpo0LzXiLAzBMRcrjBQjeS76doTUAwZRDl+yjtev97VmhYlenm46NAe5rD6+Aeum3z+i3Ufh+7dYXWYkNRuSRjUMcw6wWV/BiiBcs7+EJjFHx7rB7Qt/HnaIE3jHhwhGeolV6IfiS7Sc+9DvDHui4kxdCdaI1guy7UL8Wn4zZTtI1AE46s4SztRW5bRcdOTLd4P0EpD8Jau/jQekZEBajcDbC+KRKKr1Jmu6hski4Oe/3ZG/3+q0BDmCpmDv5h46fwYyYgpKENOWCfE14loNDVqT3Bs3vnjS1LKLFApenW9o8DoEp9KZiAuQt7+dcHENs17dEktk6yg+GF4vUe8w6+r/2RdsWDxBUHaWeKuQtuEeia5KCAyG1J8SndyuXtJhE/XFsVNjc+hqw=
-  - secure: aykIju0BJsq2mTHT5j4XvY5qd6mpFuDC0eskVH/HIftDVFFCdWNwJ6XkL4cx3MDTKT+jjNsCSPL/zO+hdszE5xMcq50NwWyLBc1AgdOcuOxbqqQpfgbDSYHE3hrDhfE747PFwp3nfKPoWPGHc4rPwpyVHyx+bnx20F6tYUEWsJhCtPhOZTjKm/t8saLZqrQZFWzq/1hE6AADC//5I6fdkwslfiwfNQ+EAS/h+UGkF/akbtG6PjmLLQGhiRJE/5zN+PGTtskAD9wq3UdE1DkjU8IuwGDItQtvTzNU219cuuSavWaAMo5KXoGnwEJf0b6V/P4lSgmOkHJrLI/a0bWQnoWYIkmww2k6RxlJg2O31+Ua6fIG8npTnumvpQmNTnQ7xBpOl3By8OwIrNFtz8xxcccZqbaHXmcnVlpSm2DlLwHt3hfwTTeeaxqDPBX1R74HzH9kxEjyKx8cVasTPMHDMP83i1J1qKItsYEF1hrtBG5/adJguVmyaYnnUIHk349Lj+zqXsWmDe63UXwau3sUmQgi2n0o5neARrrWxeEWycLsi2i+Dkp+meZC3PovYRUMuBVLkkFGCbOIsHvvgG9snPfhtJRXcKDboYDZ6sXbbAU2KVY7SRydIt+3oXnKSKRIzdFLnCCmJJ71to9e8/62zGkXMyKDJCc/wPKPY4Q7GhI=
-  - secure: 4Vo1DpONFWHPfNsBqbibWe3aRhLYnrCMf2SSLQAWxbI+rlR6MOI9w64eQpO+ZksI+iJdKRWQPi3lb0GFHyRRkgWhqZTDkDUY49NALCJfIpuhw0QhLSyVtgj4I3X+Haak/Hrwe7JL4RWnDlQJFTb4ov2PK5PTVcuus9YEewEFCr+LUADaYKqUtxeEkSn4ynIvNFlTRPuZMBmBzS9IKNxkP/i3YWi2v3QvZVUkP5VZjclTfAK3hGjXRhBACOxN+Nw2XNgIbiZ78ZvTe1MXz6hpIHlSw3zORxWsygLFdyjjwbVTqeld0Mz6uITYeYv/ZBWREfnHJT0nbelIY1yDa99n/ezMAY6F8KB6YsvDTobw+ghRhMUi4hPPbhAGxLRwO1LVNBLl4IQ1PZ+HaCgHFuwrY3cOB2AvBu1g0zMbxUsF9Bz/U6UVlrq53ygSNKUAmDHGckBaxHQCDJx8bWXOAYX6eHFETWJ1qyo5ed9JK8OACdV+pVW6+KEc5yLYg9DwerDLYS3htyTqqyQX0b6is5D6NiVs4mN9uIvbV8OjpfiS8WKWgjGEjL7Z0ZuQpeBELEDD1/IHsmu0cphFDvRtVWHBan6f3ZsiAEWahY90Nzk+BehgmqbnQa0aY1aDd8AAQcJ9ww1NcdyQUzzsKnD+A8DDkR0Ao6hKt9l3Qnt6/14RqUI=
+    - secure: "QbQg9HGg51hKco7nL59fDJawQFo69Qtok0FiI0h4MHfSmSulcgjSMrt+0t4rMBeChi4EsrCqXWTnfHLxU0YPMlV1vhmp9VO8TLTPJSngI2T5M1BPKUs0jdsOTjefP/Z6j2N6FaMfX55m6nWo/8ta0kkv/OHXbEc408oFAzH1QtZNQ/nm2W1a1Z1vlofGtbS8t7qpYG4nStPz6cbMFhvlyouGm84PV0tGnIdZ6RTTvXQb5J+DxiiPR5Z85+zguda8Z8MjDpkZnHm4lTAZ68Arl2PczeAGnLamWOtAC/3rCTi8OkuLrlumfOKGeEFLG18fFrDC8Co09st6q2hHi/a9GDVK+E3Gy88IID6uI8rZ6H7zr3Zpumj7NzHtzP9vzUAdIRPWEXmKDAFMZlgO0OZ0fGIeXRlx1BUM/N7pHP0LghrcLJV7DqvmzJ3hYMKrb+bwmjeug4S0Q+HNCu7rasuWCO1CwU4bqTsn6M8gqz/LLv72wjdUBxoAIOe52R+08PypCK7gHXdVczSuex/fHrQ3e9w7Ces2v4tXf0SPTzsoih0oHJOW/L6qeVEPJ8lxaLX4S8v/V6vc3/ZuVnDuThqvLA7hw9pCkIeyb1yv636YX9Yy4uXRHITFQdsiw/58efKrN1MI+iHrfKI82VO9tyrSTZzrEJ/CP3jsEGYIjU1yCKw="
+    - secure: "xIbWlTRM5ASi9KfkKT+C/zYzZHhOgiT7s1BKS1SHy92Md86jUyzzcwKQ5cmtcw2ur94J4fPeR6OZk27h9+qVQyOz0uA5kXftaeJrStvJS2KQ3QdO/Pwp1fUAzgnVz+vXv3mAWDlkapgcH2aYLEbEZ3H+jMAYzmvSnKYXPwNPYHf/rs2qBB5F4YWS8WPe6Gt7g9E/jJZBUmLMPXYR0FEWS41ZmbC7suNh3HLg6LhQxiSy8whJm23RzKFzKnb+6qoEqw9gblTChdGF7YvWTaPBSwepVRZkAixpo0LzXiLAzBMRcrjBQjeS76doTUAwZRDl+yjtev97VmhYlenm46NAe5rD6+Aeum3z+i3Ufh+7dYXWYkNRuSRjUMcw6wWV/BiiBcs7+EJjFHx7rB7Qt/HnaIE3jHhwhGeolV6IfiS7Sc+9DvDHui4kxdCdaI1guy7UL8Wn4zZTtI1AE46s4SztRW5bRcdOTLd4P0EpD8Jau/jQekZEBajcDbC+KRKKr1Jmu6hski4Oe/3ZG/3+q0BDmCpmDv5h46fwYyYgpKENOWCfE14loNDVqT3Bs3vnjS1LKLFApenW9o8DoEp9KZiAuQt7+dcHENs17dEktk6yg+GF4vUe8w6+r/2RdsWDxBUHaWeKuQtuEeia5KCAyG1J8SndyuXtJhE/XFsVNjc+hqw="
