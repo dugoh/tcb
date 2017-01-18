@@ -4,7 +4,6 @@ language: c
 addons:
   apt:
     packages:
-    - gawk
     - bc
     - texinfo
     - libmpfr-dev
@@ -18,9 +17,8 @@ script:
   - make info
   - make init
   - make fetchtoolchain 2>&1 |tee /tmp/fetchtoolchain.out.txt |grep "^make "
-  - make toolchain      2>&1 |tee /tmp/toolchain.out.txt      |grep -n .|grep "10:"
-  - cat ~/ccc.rrr
-#  - find sysroot        2>&1 |tee /tmp/sysroot.list.txt       |grep "crypt"
+  - make toolchain      #2>&1 |tee /tmp/toolchain.out.txt      |grep -n .|grep "10:"
+  - find sysroot        2>&1 |tee /tmp/sysroot.list.txt       |grep "crypt"
   - make linux          2>&1 |tee /tmp/linux.out.txt          |grep "vmlinux"
   - make history        2>&1 |tee /tmp/history.out.txt        |grep "bzip"
   - cd sysroot
