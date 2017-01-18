@@ -4,6 +4,7 @@ language: c
 addons:
   apt:
     packages:
+    - gawk
     - bc
     - texinfo
     - libmpfr-dev
