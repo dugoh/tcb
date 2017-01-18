@@ -5,7 +5,7 @@ toolchain:
 	$(MAKE) $(TOOLCHAIN)_toolchain
 
 fetchmusltoolchain: 
-	cd downloads; wget -nv ftp://sourceware.org/pub/binutils/snapshots/binutils-@VERSION@.tar.bz2 
+	cd downloads; wget -nv ftp://sourceware.org/pub/binutils/snapshots/binutils-@VERSION@.tar.bz2
 	cd src; git clone git://github.com/openrisc/or1k-gcc.git
 	$(MAKE) fetchkernel$(KERNELVERSION)
 	cd src; git clone git://git.musl-libc.org/musl
@@ -13,7 +13,8 @@ fetchmusltoolchain:
 	cd src/or1k-gcc; git checkout musl-4.9.1
 
 fetchgnutoolchain:
-	cd downloads; wget -nv ftp://sourceware.org/pub/binutils/snapshots/binutils-@VERSION@.tar.bz2
+	#cd downloads; wget -nv ftp://sourceware.org/pub/binutils/snapshots/binutils-@VERSION@.tar.bz2
+	cd src; git clone --depth 10 git://sourceware.org/git/binutils-gdb.git
 	cd src; git clone --depth 10 git://github.com/openrisc/or1k-gcc.git
 	$(MAKE) fetchkernel$(KERNELVERSION)
 	cd src; git clone --depth 10 git://github.com/openrisc/or1ksim.git
@@ -64,19 +65,21 @@ gnu_toolchain:
 
 binutils_VERSION=-\@VERSION\@
 toolchain_binutils2:
-	$(call extractpatch,binutils,$(binutils_VERSION))
+	#$(call extractpatch,binutils,$(binutils_VERSION))
 	#cd src/binutils; patch -Np1 -i ../../patches/binutils-patch.diff
-	cd src/binutils; sed -i -e 's,MAKEINFO=".MISSING makeinfo",MAKEINFO=true,g' configure
+	cd src/binutils-gdb; git clean -d -f
+	cd src/binutils-gdb; git reset --hard
+	cd src/binutils-gdb; sed -i -e 's,MAKEINFO=".MISSING makeinfo",MAKEINFO=true,g' configure
 	mkdir -p src/or1k-src-build
 	rm -rf src/or1k-src-build/*
-	cd src/or1k-src-build;../../src/binutils/configure \
+	cd src/or1k-src-build;../../src/binutils-gdb/configure \
+	--disable-gdb --disable-libdecnumber --disable-readline --disable-sim \
 	--disable-werror \
         --target=$(TOOLCHAIN_TARGET) \
         --prefix=$(TOOLCHAIN_DIR) \
 	--with-sysroot
 	cd src/or1k-src-build; make
 	cd src/or1k-src-build; make install
-
 
 toolchain_binutils:
 	mkdir -p src/or1k-src-build
@@ -145,7 +148,6 @@ toolchain_musl:
 	cd src/musl; make install 
 	#cp patches/stddef.h $(SYSROOT)/usr/include/
 
-
 toolchain_uclibc:
 	mkdir -p $(SYSROOT)/usr/bin
 	cd src/uClibc-or1k; make clean
@@ -173,7 +175,6 @@ toolchain_glibc:
 	-r objdir="${CURDIR}/src/glibc-build" C-translit.h
 	cd src/glibc-build; make 
 	cd src/glibc-build; make install DESTDIR=$(SYSROOT)
-
 
 toolchain_gcc2:
 	rm -rf src/gcc-build/*
