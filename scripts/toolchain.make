@@ -168,7 +168,6 @@ toolchain_glibc:
 	../or1k-glibc/configure $(CONFIG_HOST) 	\
 	--with-headers=${SYSROOT}/usr/include --prefix=/usr	\
 	--enable-kernel=3.0.0
-	cd src/glibc-build; cat config.log >~/ccc.rrr
 	cd src/glibc-build; make \
 	-C ${CURDIR}/src/or1k-glibc/locale \
 	-r objdir="${CURDIR}/src/glibc-build" C-translit.h
