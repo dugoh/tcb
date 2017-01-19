@@ -59,6 +59,7 @@ gnu_toolchain:
 	mkdir -p $(TOOLCHAIN_DIR)/$(TOOLCHAIN_TARGET)
 	$(MAKE) toolchain_binutils2
 	$(MAKE) toolchain_gcc1
+	set
 	$(MAKE) toolchain_linux
 	$(MAKE) toolchain_glibc
 	$(MAKE) toolchain_gcc3
