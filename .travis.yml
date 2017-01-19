@@ -13,20 +13,10 @@ addons:
 before_script:
   - ulimit -c unlimited -S
 script:
-  - set
-  - echo ++++++++++
-  - cat /proc/cpuinfo
-  - free
-  - ld --version
   - make info
   - make init
   - make fetchtoolchain 2>&1 |tee /tmp/fetchtoolchain.out.txt |grep "^make "
-  - make toolchain      #2..1 |tee /tmp/toolchain.out.txt      |grep -n .|grep "10:"
-  - ls -l src/glibc-build
-  - cat src/glibc-build/config.log
-  - find ${HOME}/ -type f |grep -i cross
-  - echo ..........
-  - find ${HOME}/ -type l |grep -i cross
+  - make toolchain      2>&1 |tee /tmp/toolchain.out.txt      |grep -n .|grep "10:"
   - find sysroot        2>&1 |tee /tmp/sysroot.list.txt       |grep "crypt"
   - make linux          2>&1 |tee /tmp/linux.out.txt          |grep "vmlinux"
   - make history        2>&1 |tee /tmp/history.out.txt        |grep "bzip"
