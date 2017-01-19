@@ -1,6 +1,9 @@
 These scripts should help to build a toolchain, programs and libraries for the openrisc or1k processor. They were taken from http://jor1k.com/downloads/or1k-toolchain.tar.bz2 and then butchered and forced down a CI pipeline. The final goal is to build a filesystem for jor1k with a minimal number of tools for simulating history.
 
-Building Linux from scratch takes Travis to the limit, but here it goes: [![Build Status](https://travis-ci.org/dugoh/tcb.svg?branch=master)](https://travis-ci.org/dugoh/tcb)
+Building Linux from scratch takes Travis to the limit, but here it goes:
+[![Build Status](https://travis-ci.org/dugoh/tcb.svg?branch=master)](https://travis-ci.org/dugoh/tcb)
+
+Build artifacts are pushed to gh-pages at https://dugoh.github.io/tcb/
 
 TOOLCHAIN
 ---------
