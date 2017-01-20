@@ -17,8 +17,9 @@ fetchgnutoolchain:
 	cd src; git clone --depth 10 git://sourceware.org/git/binutils-gdb.git
 	cd src; git clone --depth 10 git://github.com/openrisc/or1k-gcc.git
 	$(MAKE) fetchkernel$(KERNELVERSION)
-	cd src; git clone --depth 10 git://github.com/openrisc/or1ksim.git
-	cd src; git clone --depth 10 git://github.com/openrisc/or1k-glibc.git
+	#cd src; git clone --depth 10 git://github.com/openrisc/or1ksim.git
+	cd src; git clone --depth 10 git://github.com/bluecmd/or1k-glibc.git
+	#cd src; git clone --depth 10 git://github.com/openrisc/or1k-glibc.git
 
 fetchkernel3:
 	cd src; git clone git://github.com/skristiansson/linux.git
@@ -169,7 +170,7 @@ toolchain_glibc:
 	cd src/glibc-build; 			\
 	../or1k-glibc/configure $(CONFIG_HOST) 	\
 	--with-headers=${SYSROOT}/usr/include --prefix=/usr	\
-	--enable-kernel=3.0.0
+	--enable-kernel=$(KERNELVERSION)
 	cd src/glibc-build; make \
 	-C ${CURDIR}/src/or1k-glibc/locale \
 	-r objdir="${CURDIR}/src/glibc-build" C-translit.h
