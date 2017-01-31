@@ -177,9 +177,9 @@ linux:
 	sed -i~ -e "s/8000_96000/11025/" src/linux/sound/soc/sh/fsi.c
 	cd src/linux; mkdir -p drivers/nullmodem/
 	wget -nc -P src/linux/drivers/nullmodem/ https://github.com/dugoh/nullmodem/raw/master/nullmodem.c
-	cd src/linux; echo 'obj-$(CONFIG_NULLMODEM) += nullmodem.o' >drivers/nullmodem/Makefile
+	cd src/linux; echo 'obj-$$(CONFIG_NULLMODEM) += nullmodem.o' >drivers/nullmodem/Makefile
 	cd src/linux; printf "config NULLMODEM\n\ttristate \"Virtual nullmodem driver\"\n\thelp\n\t  Creates pairs of virtual COM ports that are connected to each other.\n\t  The name of the devices are /dev/nmpX, where X is the number of the COM port.\n" >drivers/nullmodem/Kconfig
-	cd src/linux; echo 'obj-$(CONFIG_NULLMODEM)\t\t+= nullmodem/' >> drivers/Makefile
+	cd src/linux; echo 'obj-$$(CONFIG_NULLMODEM)\t\t+= nullmodem/' >> drivers/Makefile
 	cd src/linux; sed -i~ -e's/endmenu/source "drivers\/nullmodem\/Kconfig"\n\nendmenu/' drivers/Kconfig
 	cd src/linux; echo CONFIG_NULLMODEM=y >>.config
 	cd src/linux; make ARCH=openrisc CONFIG_CROSS_COMPILE="$(TOOLCHAIN_TARGET)-"
