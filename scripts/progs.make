@@ -1475,7 +1475,12 @@ uucp:
 	cd src/$@; $(TOOLCHAIN_TARGET)-strip cu
 	cd src/$@; bzip2 --force --best cu
 	cd src/$@; cp cu.bz2 $(JOR1KSYSROOT)/
-
+	cd src/$@; make clean
+	cd src/$@; CFLAGS="-static -O2 -g" CC=$(TOOLCHAIN_TARGET)-gcc ./configure --target=$(TOOLCHAIN_TARGET) --build=or1k
+	cd src/$@; make
+	cd src/$@; $(TOOLCHAIN_TARGET)-strip cu
+	cd src/$@; bzip2 --force --best cu
+	cd src/$@; cp cu.bz2 $(JOR1KSYSROOT)/cu.static.bz2
 
 fetchhistory:
 	wget -nc -P downloads/ http://download.savannah.gnu.org/releases/sysvinit/sysvinit$(sysvinit_VERSION).tar.bz2
