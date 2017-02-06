@@ -75,6 +75,7 @@ help:
 
 
 info:
+	@echo "TOOLCHAIN_TARGET=$(TOOLCHAIN_TARGET)"
 	@echo "TOOLCHAIN_DIR=$(TOOLCHAIN_DIR)"
 	@echo "PATH = $(PATH)"
 	@echo "SYSROOT = $(SYSROOT)"
@@ -98,6 +99,7 @@ env:
 	@echo "export PKG_CONFIG_PATH=$(PKG_CONFIG_PATH)"
 	@echo "export PKG_CONFIG_LIBDIR=$(PKG_CONFIG_LIBDIR)"
 	@echo "export PKG_CONFIG_SYSROOT_DIR=$(PKG_CONFIG_SYSROOT_DIR)"
+	@echo "export TOOLCHAIN_TARGET=$(TOOLCHAIN_TARGET)"
 	@echo "#===================================================="
 
 test:
