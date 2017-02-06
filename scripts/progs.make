@@ -1383,11 +1383,12 @@ simh_VERSION = -master
 nullmodem_VERSION = -master
 coreutils_VERSION = -8.6
 uucp_VERSION = -1.07
+strace_VERSION = -master
 
 HISTPROGS = sysvinit heirloom-sh
 histprogs: $(HISTPROGS)
 histlibs: prelibs $(TOOLCHAIN)
-history: fetchhistory histlibs histprogs util-linux libpcap simh uucp
+history: fetchhistory histlibs histprogs util-linux libpcap simh uucp strace
 
 sysvinit:
 	$(call extractpatch,$@,$($@_VERSION))
@@ -1501,6 +1502,23 @@ uucp:
 	cd src/$@; bzip2 --force --best cu
 	cd src/$@; cp cu.bz2 $(JOR1KSYSROOT)/cu.static.bz2
 
+strace:
+	$(call extractpatch,$@,$($@_VERSION))
+	cd src/$@; ./bootstrap
+	cd src/$@; ./configure --host="or1k"
+	cd src/$@; make CC=$(TOOLCHAIN_TARGET)-gcc CFLAGS="-Os \
+ 	-fomit-frame-pointer \
+	-static \
+	-static-libgcc \
+ 	-ffunction-sections -fdata-sections \
+	-falign-functions=1 -falign-jumps=1 -falign-labels=1 -falign-loops=1 \
+	-fno-unwind-tables \
+	-fno-asynchronous-unwind-tables \
+	-Wl,--gc-sections \
+	-Wl,-Map=strace.mapfile"
+	cd src/$@; bzip2 --force --best strace
+	cd src/$@; cp strace.bz2 $(JOR1KSYSROOT)/strace.static.bz2
+	
 fetchhistory:
 	wget -nc -P downloads/ http://download.savannah.gnu.org/releases/sysvinit/sysvinit$(sysvinit_VERSION).tar.bz2
 	wget -nc -P downloads/ http://sourceforge.net/projects/heirloom/files/heirloom-sh/050706/heirloom-sh$(heirloom-sh_VERSION).tar.bz2
@@ -1509,3 +1527,4 @@ fetchhistory:
 	wget -nc -O downloads/simh-master.tar.gz https://github.com/simh/simh/archive/master.tar.gz || ls downloads/simh-master.tar.gz >/dev/null
 	#wget -nc -P downloads/ ftp://ftp.gnu.org/gnu/coreutils/coreutils$(coreutils_VERSION).tar.gz
 	wget -nc -P downloads/ ftp://ftp.gnu.org/gnu/uucp/uucp$(uucp_VERSION).tar.gz
+	wget -nc -O downloads/strace-master.tar.gz https://github.com/strace/strace/archive/master.tar.gz || ls downloads/strace-master.tar.gz >/dev/null
