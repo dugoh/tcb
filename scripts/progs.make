@@ -1505,7 +1505,7 @@ uucp:
 strace:
 	$(call extractpatch,$@,$($@_VERSION))
 	cd src/$@; ./bootstrap
-	cd src/$@; ./configure --host="or1k"
+	cd src/$@; ./configure $(CONFIG_HOST)
 	cd src/$@; make CC=$(TOOLCHAIN_TARGET)-gcc CFLAGS="-Os \
  	-fomit-frame-pointer \
 	-static \
