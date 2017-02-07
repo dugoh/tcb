@@ -568,8 +568,8 @@ tyrquake:
 	#cd src/$@; make CFLAGS="-O2 -mhard-float" STRIP=or1k-linux-musl-strip CC=or1k-linux-musl-gcc USE_X86_ASM=N prepare V=1 tyr-qwsv
 	#cd src/$@; make CFLAGS="-O2 -mhard-float" STRIP=or1k-linux-musl-strip CC=or1k-linux-musl-gcc USE_X86_ASM=N prepare V=1
 
-strace_VERSION = -4.8
-strace:
+oldstrace_VERSION = -4.8
+oldstrace:
 	$(call extractpatch,$@,$($@_VERSION))
 	cd src/$@; patch -Np1 -i ../../patches/strace-musl.patch
 	cd src/$@; patch -Np1 -i ../../patches/strace-kernelhdr_3.12.6.patch
