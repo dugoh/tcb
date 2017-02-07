@@ -3,7 +3,9 @@ These scripts should help to build a toolchain, programs and libraries for the o
 Building Linux from scratch takes Travis to the limit, but here it goes:
 [![Build Status](https://travis-ci.org/dugoh/tcb.svg?branch=master)](https://travis-ci.org/dugoh/tcb)
 
-Build artifacts are pushed to gh-pages at https://dugoh.github.io/tcb/
+A few final build artifacts for my jor1k fork are pushed to gh-pages at https://dugoh.github.io/tcb/
+Now that building these frequently run into "The job exceeded the maximum time limit for jobs, and has been terminated."
+The toolchain part probably has to be forked off from the stuff I want to build with it.
 
 TOOLCHAIN
 ---------
@@ -62,7 +64,7 @@ Execute following command
 	make history
 ```
 
-**Not sure if the below still works!**
+**Not sure if the below still works! Never makes it past the Travis time cut**
 
 Progs and Libs
 --------------
