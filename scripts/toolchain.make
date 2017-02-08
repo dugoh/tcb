@@ -212,6 +212,6 @@ toolchain_gcc3:
 	--enable-vtable-verify	\
 	--with-sysroot=$(SYSROOT)
 	cd src/gcc-build; make
-	cd src/gcc-build; make install
+	cd src/gcc-build; make install-strip
 	##cp -P $(TOOLCHAIN_DIR)/$(TOOLCHAIN_TARGET)/lib/libstdc* $(SYSROOT)/usr/lib/
 	##cp -P $(TOOLCHAIN_DIR)/$(TOOLCHAIN_TARGET)/lib/libgcc* $(SYSROOT)/usr/lib/
