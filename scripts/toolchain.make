@@ -79,8 +79,8 @@ toolchain_binutils2:
         --target=$(TOOLCHAIN_TARGET) \
         --prefix=$(TOOLCHAIN_DIR) \
 	--with-sysroot
-	cd src/or1k-src-build; make
-	cd src/or1k-src-build; make install
+	cd src/or1k-src-build; make -j 4
+	cd src/or1k-src-build; make install-strip
 
 toolchain_binutils:
 	mkdir -p src/or1k-src-build
@@ -133,8 +133,8 @@ toolchain_gcc1:
 	--disable-libatomic \
 	--disable-multilib	
 	#cd src/gcc-build; echo "MAKEINFO = :" >> Makefile
-	cd src/gcc-build; make
-	cd src/gcc-build; make install
+	cd src/gcc-build; make -j 4
+	cd src/gcc-build; make install-strip
 
 toolchain_musl:
 	cd src/musl; make distclean
@@ -211,7 +211,7 @@ toolchain_gcc3:
 	--disable-nls \
 	--enable-vtable-verify	\
 	--with-sysroot=$(SYSROOT)
-	cd src/gcc-build; make
+	cd src/gcc-build; make -j 4
 	cd src/gcc-build; make install-strip
 	##cp -P $(TOOLCHAIN_DIR)/$(TOOLCHAIN_TARGET)/lib/libstdc* $(SYSROOT)/usr/lib/
 	##cp -P $(TOOLCHAIN_DIR)/$(TOOLCHAIN_TARGET)/lib/libgcc* $(SYSROOT)/usr/lib/
