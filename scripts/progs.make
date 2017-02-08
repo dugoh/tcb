@@ -1388,7 +1388,7 @@ strace_VERSION = -master
 HISTPROGS = sysvinit heirloom-sh
 histprogs: $(HISTPROGS)
 histlibs: prelibs $(TOOLCHAIN)
-history: fetchhistory histlibs histprogs util-linux libpcap simh uucp strace
+history: fetchhistory histlibs histprogs util-linux libpcap simh uucp
 
 sysvinit:
 	$(call extractpatch,$@,$($@_VERSION))
