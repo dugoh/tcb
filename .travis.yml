@@ -20,6 +20,7 @@ script:
   - find sysroot        2>&1 |tee /tmp/sysroot.list.txt       |grep "crypt"
   - make linux          2>&1 |tee /tmp/linux.out.txt          |grep "vmlinux"
   - make history        2>&1 |tee /tmp/history.out.txt        |grep "bzip"
+  - du -m ${HOME} >/tmp/du.txt
   - cd sysroot
   - tar -cvf ../jorik-sysroot/sysroot.tar ./*
   - cd ../jorik-sysroot
