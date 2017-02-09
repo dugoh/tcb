@@ -23,6 +23,8 @@ script:
   - du -m ${HOME} >/tmp/du.txt
   - cd sysroot
   - tar -cvf ../jorik-sysroot/sysroot.tar ./*
+  - tar -cvf ../jorik-sysroot/opt.tar ${HOME}/opt/
+  - bzip2 --best ../jorik-sysroot/opt.tar
   - cd ../jorik-sysroot
   - git init
   - git config user.name "${USER}"
