@@ -1,11 +1,10 @@
-These scripts should help to build a toolchain, programs and libraries for the openrisc or1k processor. They were taken from http://jor1k.com/downloads/or1k-toolchain.tar.bz2 and then butchered and forced down a CI pipeline. The final goal is to build a filesystem for jor1k with a minimal number of tools for simulating history.
+These scripts should help to build a toolchain, programs and libraries for the openrisc or1k processor. They were taken from http://jor1k.com/downloads/or1k-toolchain.tar.bz2 and then butchered and forced down a CI pipeline.
 
-Building Linux from scratch takes Travis to the limit, but here it goes:
+The goal was to build a filesystem for jor1k with a minimal number of tools for simulating history. However, building Linux from scratch takes Travis to the limit., so only the kernel, libc and a few static binaries are built, here it goes:
+
 [![Build Status](https://travis-ci.org/dugoh/tcb.svg?branch=master)](https://travis-ci.org/dugoh/tcb)
 
-A few final build artifacts for my jor1k fork are pushed to gh-pages at https://dugoh.github.io/tcb/
-Now that building these frequently run into "The job exceeded the maximum time limit for jobs, and has been terminated."
-The toolchain part probably has to be forked off from the stuff I want to build with it.
+Most build artifacts are pushed to gh-pages at https://dugoh.github.io/tcb/
 
 TOOLCHAIN
 ---------
@@ -56,8 +55,8 @@ Execute following command
 	make linux
 ```
 
-Progs for simulating history
-----------------------------
+Progs for simulating history with a static simh pdp-11
+------------------------------------------------------
 Execute following command
 
 ```sh
