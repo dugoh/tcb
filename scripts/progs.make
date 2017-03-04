@@ -1487,6 +1487,25 @@ simh:
 	-lm -lrt -lpthread -ldl -lpcap
 	$(TOOLCHAIN_TARGET)-strip $(JOR1KSYSROOT)/pdp11.static
 	bzip2 --force --best $(JOR1KSYSROOT)/pdp11.static
+	cd src/$@; $(TOOLCHAIN_TARGET)-gcc -std=gnu99 -U__STRICT_ANSI__  \
+	-O2 -finline-functions -fgcse-after-reload -fpredictive-commoning -fipa-cp-clone \
+	-fno-unsafe-loop-optimizations -fno-strict-overflow -Wno-unused-result \
+	-DSIM_COMPILER="`$(TOOLCHAIN_TARGET)-gcc -v 2>&1|tail -1`" \
+	-I . \
+	-D_GNU_SOURCE \
+	-DHAVE_REGEX_H \
+	-DHAVE_GLOB \
+	-DHAVE_SHM_OPEN  \
+	PDP18B/pdp18b_dt.c PDP18B/pdp18b_drm.c PDP18B/pdp18b_cpu.c PDP18B/pdp18b_lp.c \
+	PDP18B/pdp18b_mt.c PDP18B/pdp18b_rf.c PDP18B/pdp18b_rp.c PDP18B/pdp18b_stddev.c \
+	PDP18B/pdp18b_sys.c PDP18B/pdp18b_rb.c PDP18B/pdp18b_tt1.c PDP18B/pdp18b_fpp.c \
+	PDP18B/pdp18b_g2tty.c scp.c sim_console.c sim_fio.c sim_timer.c sim_sock.c \
+	sim_tmxr.c sim_ether.c sim_tape.c sim_disk.c sim_serial.c sim_video.c sim_imd.c sim_card.c \
+	-I$(SYSROOT)/usr/include/ \
+	-DPDP7 -I PDP18B -static -o $(JOR1KSYSROOT)/pdp7.static \
+	-lm -lrt
+	$(TOOLCHAIN_TARGET)-strip $(JOR1KSYSROOT)/pdp7.static
+	bzip2 --force --best $(JOR1KSYSROOT)/pdp7.static
 
 uucp:
 	$(call extractpatch,$@,$($@_VERSION))
